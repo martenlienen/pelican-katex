@@ -1,0 +1,6 @@
+# Include important text files
+include README.md
+include LICENSE
+
+# Include the javascript parts
+include pelican_katex/*.js
