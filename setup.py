@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="pelican-katex",
-    version="0.1.1.post4",
+    version="1.0.0",
     author="Marten Lienen",
     author_email="marten.lienen@gmail.com",
     description="Server-side LaTeX compilation for pelican",
