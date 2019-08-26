@@ -2,18 +2,22 @@ import json
 import os
 import re
 import shlex
-from subprocess import Popen, PIPE, TimeoutExpired
+from subprocess import PIPE, Popen, TimeoutExpired
 
 import docutils
 from docutils.parsers.rst import Directive, directives, roles
-from pelican import signals, generators
+from pelican import generators, signals
 
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_PATH = os.path.join(SRC_DIR, "compile-katex.js")
 
 # Global KaTeX options. Configurable via KATEX in the user conf.
 KATEX_OPTIONS = {
     # Prefer KaTeX's debug coloring by default
     "throwOnError": False
 }
+
+
 def get_katex_options():
     return KATEX_OPTIONS.copy()
 
@@ -40,8 +44,7 @@ def render_latex(latex, options=None, timeout=1):
     """
     global KATEX_PATH
 
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "compile-katex.js")
-    cmd = "node {}".format(script_path)
+    cmd = "node {}".format(SCRIPT_PATH)
     if options:
         cmd = "{} --options {}".format(cmd, shlex.quote(json.dumps(options)))
 
