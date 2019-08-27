@@ -1,6 +1,11 @@
+import atexit
 import json
 import re
-import shlex
+import shutil
+import socket
+import struct
+import tempfile
+import time
 from pathlib import Path
 from subprocess import PIPE, Popen, TimeoutExpired
 
@@ -30,8 +35,118 @@ class KaTeXError(Exception):
     pass
 
 
+class RenderServer:
+    """Manages and communicates with an instance of the node server"""
+
+    # The length of a message is transmitted as 32-bit little-endian integer
+    LENGTH_STRUCT = struct.Struct("<i")
+
+    # A global instance
+    RENDER_SERVER = None
+
+    # How long to wait for the server to start in seconds
+    START_TIMEOUT = 0.1
+
+    # How long to wait for the server to stop in seconds
+    STOP_TIMEOUT = 0.1
+
+    @staticmethod
+    def build_command(socket_path):
+        cmd = ["node", SCRIPT_PATH, "--socket", str(socket_path)]
+
+        if KATEX_PATH:
+            cmd.extend(["--katex", str(KATEX_PATH)])
+
+        return cmd
+
+    @classmethod
+    def start(cls):
+        rundir = Path(tempfile.mkdtemp(prefix="pelican_katex"))
+        socket_path = rundir / "katex.sock"
+
+        # Start the server process
+        cmd = cls.build_command(socket_path)
+        process = Popen(cmd, stdin=PIPE, stdout=PIPE)
+
+        # Wait for the server to come up and create the socket. Is there a
+        # better way to do this?
+        time.sleep(cls.START_TIMEOUT)
+        if not socket_path.is_socket():
+            raise KaTeXError("KaTeX server did not start up quickly enough")
+
+        # Connect to the server through a unix socket
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(str(socket_path))
+
+        server = RenderServer(rundir, process, sock)
+
+        # Clean up after ourselves when pelican is done. This does not work in
+        # live-reload mode if you stop it with ctrl+c because that is not an
+        # orderly exit. However, I don't want to register signal handlers here
+        # and using pelican's signals.finalized has a high performance penalty
+        # because this is triggered after every reload and negates the advantage
+        # of reusing servers across renders.
+        atexit.register(RenderServer.stop, server)
+
+        return server
+
+    @classmethod
+    def get(cls):
+        """Get the current render server or start one"""
+        if cls.RENDER_SERVER is None:
+            cls.RENDER_SERVER = RenderServer.start()
+
+        return cls.RENDER_SERVER
+
+    def __init__(self, rundir, process, sock):
+        self.rundir = rundir
+        self.process = process
+        self.sock = sock
+
+        # Pre-allocate a buffer for the responses. KaTeX renderings usually have
+        # lots of tags so let's start with 100kb.
+        self.buffer = bytearray(100 * 1024)
+
+    def stop(self):
+        """Stop the render server and clean up"""
+        self.sock.close()
+        try:
+            self.process.terminate()
+            self.process.wait(timeout=self.STOP_TIMEOUT)
+        except TimeoutExpired:
+            self.process.kill()
+        shutil.rmtree(self.rundir)
+
+    def render(self, request):
+        # Send the request
+        request_bytes = json.dumps(request).encode("utf-8")
+        length = len(request_bytes)
+        self.sock.sendall(self.LENGTH_STRUCT.pack(length))
+        self.sock.sendall(request_bytes)
+
+        # Read the amount of bytes we are about to receive
+        length = self.LENGTH_STRUCT.unpack(self.sock.recv(self.LENGTH_STRUCT.size))[0]
+
+        # Ensure that the buffer is large enough
+        if len(self.buffer) < length:
+            self.buffer = bytearray(length)
+
+        with memoryview(self.buffer) as view:
+            # Keep reading from the socket until we have received all bytes
+            received = 0
+            remaining = length
+            while remaining > 0:
+                n_received = self.sock.recv_into(view[received:length], remaining)
+                received += n_received
+                remaining -= n_received
+
+            # Decode the response
+            serialized = view[:length].tobytes().decode("utf-8")
+            return json.loads(serialized)
+
+
 def render_latex(latex, options=None, timeout=1):
-    """Call our KaTeX CLI to compile some LaTeX.
+    """Ask the KaTeX server to compile some LaTeX.
 
     Parameters
     ----------
@@ -40,32 +155,19 @@ def render_latex(latex, options=None, timeout=1):
     options : optional dict
         KaTeX options such as displayMode
     timeout : optional int
-        Kill the compiler after this many seconds
+        Kill the renderer after this many seconds
     """
-    global KATEX_PATH
 
-    cmd = "node {}".format(SCRIPT_PATH)
-    if options:
-        cmd = "{} --options {}".format(cmd, shlex.quote(json.dumps(options)))
+    server = RenderServer.get()
+    request = {"latex": latex}
+    response = server.render(request)
 
-    if KATEX_PATH:
-        cmd = "{} --katex {}".format(cmd, KATEX_PATH)
-
-    proc = Popen(shlex.split(cmd), stdin=PIPE, stdout=PIPE)
-
-    try:
-        out, err = proc.communicate(latex.encode("utf-8"), timeout=timeout)
-        html = out.decode("utf-8")
-
-        if proc.returncode == 0:
-            return html
-        else:
-            raise KaTeXError(err)
-    except TimeoutExpired:
-        proc.kill()
-
-        msg = "Compiling took longer than {} seconds".format(timeout)
-        raise KaTeXError(msg)
+    if "html" in response:
+        return response["html"]
+    elif "error" in response:
+        raise KaTeXError(response["error"])
+    else:
+        raise KaTeXError("Unknown response from KaTeX renderer")
 
 
 class KatexBlock(Directive):
