@@ -114,14 +114,11 @@ def katex_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
     if not match:
         return [], ["Could not extract raw text from role"]
 
-    try:
-        latex = match.group(1)
-        html = render_latex(latex, katex_options)
-        node = docutils.nodes.raw(rawtext, html, format="html")
+    latex = match.group(1)
+    html = render_latex(latex, katex_options)
+    node = docutils.nodes.raw(rawtext, html, format="html")
 
-        return [node], []
-    except KaTeXError as e:
-        return [], [str(e)]
+    return [node], []
 
 
 def configure_pelican(plc):
