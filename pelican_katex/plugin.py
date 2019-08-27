@@ -178,7 +178,7 @@ def render_latex(latex, options=None):
     """
 
     server = RenderServer.get()
-    request = {"latex": latex}
+    request = {"latex": latex, "katex_options": options}
 
     try:
         response = server.render(request, KATEX_TIMEOUT)
