@@ -1,15 +1,15 @@
 import json
-import os
 import re
 import shlex
+from pathlib import Path
 from subprocess import PIPE, Popen, TimeoutExpired
 
 import docutils
 from docutils.parsers.rst import Directive, directives, roles
 from pelican import generators, signals
 
-SRC_DIR = os.path.dirname(os.path.abspath(__file__))
-SCRIPT_PATH = os.path.join(SRC_DIR, "compile-katex.js")
+SRC_DIR = Path(__file__).parent
+SCRIPT_PATH = str(SRC_DIR / "compile-katex.js")
 
 # Global KaTeX options. Configurable via KATEX in the user conf.
 KATEX_OPTIONS = {
