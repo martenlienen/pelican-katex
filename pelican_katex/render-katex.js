@@ -89,7 +89,7 @@ function setupClient(client) {
   });
 }
 
-// Hand over a compilation request to KaTeX
+// Hand over a rendering request to KaTeX
 function handleRequest(client, serialized) {
   try {
     var request = JSON.parse(serialized);

@@ -14,7 +14,7 @@ from docutils.parsers.rst import Directive, directives, roles
 from pelican import generators, signals
 
 SRC_DIR = Path(__file__).parent
-SCRIPT_PATH = str(SRC_DIR / "compile-katex.js")
+SCRIPT_PATH = str(SRC_DIR / "render-katex.js")
 
 # Global KaTeX options. Configurable via KATEX in the user conf.
 KATEX_OPTIONS = {
@@ -146,12 +146,12 @@ class RenderServer:
 
 
 def render_latex(latex, options=None, timeout=1):
-    """Ask the KaTeX server to compile some LaTeX.
+    """Ask the KaTeX server to render some LaTeX.
 
     Parameters
     ----------
     latex : str
-        LaTeX to compile
+        LaTeX to render
     options : optional dict
         KaTeX options such as displayMode
     timeout : optional int

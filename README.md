@@ -1,7 +1,7 @@
-# Server-Side LaTeX Compilation for Pelican
+# Server-Side LaTeX Typesetting for Pelican
 
 This plugin hooks itself directly into docutils' reStructuredText parser to
-compile math roles and blocks with [KaTeX](https://github.com/KaTeX/KaTeX) while
+render math roles and blocks with [KaTeX](https://github.com/KaTeX/KaTeX) while
 building your blog. Therefore, you do not need to ship the KaTeX javascript
 implementation with your website anymore and improve the accessibility as well
 as the load time of your internet presence.

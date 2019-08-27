@@ -8,7 +8,7 @@ setup(
     version="1.1.0",
     author="Marten Lienen",
     author_email="marten.lienen@gmail.com",
-    description="Server-side LaTeX compilation for pelican",
+    description="Server-side LaTeX typesetting for pelican",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/cqql/pelican-katex",
@@ -18,5 +18,6 @@ setup(
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: Python :: 3",
-        "Framework :: Pelican :: Plugins"
-    ])
+        "Framework :: Pelican :: Plugins",
+    ],
+)
