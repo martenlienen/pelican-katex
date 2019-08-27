@@ -16,19 +16,25 @@ from pelican import generators, signals
 SRC_DIR = Path(__file__).parent
 SCRIPT_PATH = str(SRC_DIR / "render-katex.js")
 
+TIMEOUT_EXPIRED_TEMPLATE = (
+    "Rendering {} took too long. Consider increasing KATEX_TIMEOUT"
+)
+
+# Path to the KaTeX program to run
+KATEX_PATH = None
+
 # Global KaTeX options. Configurable via KATEX in the user conf.
 KATEX_OPTIONS = {
     # Prefer KaTeX's debug coloring by default
     "throwOnError": False
 }
 
+# Timeout per rendering request in seconds
+KATEX_TIMEOUT = 1.0
+
 
 def get_katex_options():
     return KATEX_OPTIONS.copy()
-
-
-# Path to the KaTeX program to run
-KATEX_PATH = None
 
 
 class KaTeXError(Exception):
@@ -117,7 +123,12 @@ class RenderServer:
             self.process.kill()
         shutil.rmtree(self.rundir)
 
-    def render(self, request):
+    def render(self, request, timeout=None):
+        # Configure timeouts
+        if timeout is not None:
+            start_time = time.monotonic()
+            self.sock.settimeout(timeout)
+
         # Send the request
         request_bytes = json.dumps(request).encode("utf-8")
         length = len(request_bytes)
@@ -136,6 +147,16 @@ class RenderServer:
             received = 0
             remaining = length
             while remaining > 0:
+                # Abort if we are not done yet but the timeout has expired
+                if timeout is not None:
+                    elapsed = time.monotonic() - start_time
+                    if elapsed >= timeout:
+                        raise socket.timeout()
+                    else:
+                        # Subsequent recvs only get the remaining time instead
+                        # of the whole timeout again
+                        self.sock.settimeout(timeout - elapsed)
+
                 n_received = self.sock.recv_into(view[received:length], remaining)
                 received += n_received
                 remaining -= n_received
@@ -145,7 +166,7 @@ class RenderServer:
             return json.loads(serialized)
 
 
-def render_latex(latex, options=None, timeout=1):
+def render_latex(latex, options=None):
     """Ask the KaTeX server to render some LaTeX.
 
     Parameters
@@ -154,20 +175,22 @@ def render_latex(latex, options=None, timeout=1):
         LaTeX to render
     options : optional dict
         KaTeX options such as displayMode
-    timeout : optional int
-        Kill the renderer after this many seconds
     """
 
     server = RenderServer.get()
     request = {"latex": latex}
-    response = server.render(request)
 
-    if "html" in response:
-        return response["html"]
-    elif "error" in response:
-        raise KaTeXError(response["error"])
-    else:
-        raise KaTeXError("Unknown response from KaTeX renderer")
+    try:
+        response = server.render(request, KATEX_TIMEOUT)
+
+        if "html" in response:
+            return response["html"]
+        elif "error" in response:
+            raise KaTeXError(response["error"])
+        else:
+            raise KaTeXError("Unknown response from KaTeX renderer")
+    except socket.timeout:
+        raise KaTeXError(TIMEOUT_EXPIRED_TEMPLATE.format(latex))
 
 
 class KatexBlock(Directive):
@@ -224,7 +247,8 @@ def katex_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
 
 
 def configure_pelican(plc):
-    global KATEX_OPTIONS, KATEX_PATH
+    global KATEX_OPTIONS, KATEX_PATH, KATEX_TIMEOUT
+
     if "KATEX" in plc.settings and isinstance(plc.settings["KATEX"], dict):
         KATEX_OPTIONS.update(plc.settings["KATEX"])
 
@@ -235,6 +259,9 @@ def configure_pelican(plc):
         rst_name = str(plc.settings["KATEX_DIRECTIVE"])
     else:
         rst_name = "math"
+
+    if "KATEX_TIMEOUT" in plc.settings:
+        KATEX_TIMEOUT = float(plc.settings["KATEX_TIMEOUT"])
 
     directives.register_directive(rst_name, KatexBlock)
     roles.register_canonical_role(rst_name, katex_role)

@@ -29,6 +29,10 @@ The plugin offers several configuration options that you can set in your
 # alone, you can use this to define a `katex` role for example.
 # KATEX_DIRECTIVE = "katex"
 
+# Time budget in seconds per call to the rendering engine. 1 second should
+# be plenty since most renderings take less than 50ms.
+# KATEX_TIMEOUT = 1.0
+
 # Here you can pass a dictionary of default options that you want to run
 # KaTeX with. All possible options are listed on KaTeX's options page,
 # https://katex.org/docs/options.html.
