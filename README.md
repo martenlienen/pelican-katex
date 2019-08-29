@@ -6,6 +6,11 @@ building your blog. Therefore, you do not need to ship the KaTeX javascript
 implementation with your website anymore and improve the accessibility as well
 as the load time of your internet presence.
 
+For a demo visit this [blog
+post](https://martenlienen.com/sampling-k-partite-graph-edges/). Notice how all
+the formulas are just there. There is no loading and the website does not even
+serve the javascript part of KaTeX.
+
 ## Installation
 
 Run `pip install pelican-katex` and add `"pelican_katex"` to the `PlUGINS`
