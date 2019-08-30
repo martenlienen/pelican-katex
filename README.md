@@ -13,10 +13,11 @@ serve the javascript part of KaTeX.
 
 ## Installation
 
-Run `pip install pelican-katex` and add `"pelican_katex"` to the `PlUGINS`
-setting in your configuration file. Afterwards, you should be able to remove the
-`katex.js` `<script>` tag from your template and your math should still look
-fine.
+First of all, you need to install `nodejs` so that `pelican-katex` can run
+KaTeX. Then run `pip install pelican-katex` and add `"pelican_katex"` to the
+`PlUGINS` setting in your configuration file. Finally, remove the `katex.js`
+`<script>` tag from your template and enjoy a lighter website and instant
+formulas.
 
 ## Configuration
 
