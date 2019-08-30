@@ -32,6 +32,9 @@ KATEX_OPTIONS = {
 # Timeout per rendering request in seconds
 KATEX_TIMEOUT = 1.0
 
+# nodejs binary to run javascript
+KATEX_NODEJS_BINARY = "node"
+
 
 def get_katex_options():
     return KATEX_OPTIONS.copy()
@@ -42,7 +45,7 @@ class KaTeXError(Exception):
 
 
 class RenderServer:
-    """Manages and communicates with an instance of the node server"""
+    """Manages and communicates with an instance of the render server"""
 
     # The length of a message is transmitted as 32-bit little-endian integer
     LENGTH_STRUCT = struct.Struct("<i")
@@ -58,7 +61,7 @@ class RenderServer:
 
     @staticmethod
     def build_command(socket_path):
-        cmd = ["node", SCRIPT_PATH, "--socket", str(socket_path)]
+        cmd = [KATEX_NODEJS_BINARY, SCRIPT_PATH, "--socket", str(socket_path)]
 
         if KATEX_PATH:
             cmd.extend(["--katex", str(KATEX_PATH)])
@@ -247,7 +250,7 @@ def katex_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
 
 
 def configure_pelican(plc):
-    global KATEX_OPTIONS, KATEX_PATH, KATEX_TIMEOUT
+    global KATEX_OPTIONS, KATEX_PATH, KATEX_TIMEOUT, KATEX_NODEJS_BINARY
 
     if "KATEX" in plc.settings and isinstance(plc.settings["KATEX"], dict):
         KATEX_OPTIONS.update(plc.settings["KATEX"])
@@ -262,6 +265,9 @@ def configure_pelican(plc):
 
     if "KATEX_TIMEOUT" in plc.settings:
         KATEX_TIMEOUT = float(plc.settings["KATEX_TIMEOUT"])
+
+    if "KATEX_NODEJS_BINARY" in plc.settings:
+        KATEX_NODEJS_BINARY = plc.settings["KATEX_NODEJS_BINARY"]
 
     directives.register_directive(rst_name, KatexBlock)
     roles.register_canonical_role(rst_name, katex_role)

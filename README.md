@@ -24,6 +24,9 @@ The plugin offers several configuration options that you can set in your
 `pelicanconf.py`.
 
 ```python
+# nodejs binary path or command to run KaTeX with.
+# KATEX_NODEJS_BINARY = "node"
+
 # Path to the katex file to use. This project comes with version `0.10` of
 # katex but if you want to use a different one you can overwrite the path
 # here. To use a katex npm installation, set this to `"katex"`.
