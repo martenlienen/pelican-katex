@@ -20,6 +20,13 @@ TIMEOUT_EXPIRED_TEMPLATE = (
     "Rendering {} took too long. Consider increasing KATEX_TIMEOUT"
 )
 
+STARTUP_TIMEOUT_EXPIRED_TEMPLATE = (
+    "KaTeX server did not start up after {} seconds. "
+    "Consider increasing KATEX_STARTUP_TIMEOUT."
+)
+
+ONE_MILLISECOND = 0.001
+
 # Path to the KaTeX program to run
 KATEX_PATH = None
 
@@ -28,6 +35,9 @@ KATEX_OPTIONS = {
     # Prefer KaTeX's debug coloring by default
     "throwOnError": False
 }
+
+# How long to wait for the render server to start in seconds
+KATEX_STARTUP_TIMEOUT = 1.0
 
 # Timeout per rendering request in seconds
 KATEX_TIMEOUT = 1.0
@@ -53,9 +63,6 @@ class RenderServer:
     # A global instance
     RENDER_SERVER = None
 
-    # How long to wait for the server to start in seconds
-    START_TIMEOUT = 0.1
-
     # How long to wait for the server to stop in seconds
     STOP_TIMEOUT = 0.1
 
@@ -79,9 +86,12 @@ class RenderServer:
 
         # Wait for the server to come up and create the socket. Is there a
         # better way to do this?
-        time.sleep(cls.START_TIMEOUT)
-        if not socket_path.is_socket():
-            raise KaTeXError("KaTeX server did not start up quickly enough")
+        startup_start = time.monotonic()
+        while not socket_path.is_socket():
+            time.sleep(ONE_MILLISECOND)
+            if time.monotonic() - startup_start > KATEX_STARTUP_TIMEOUT:
+                message = STARTUP_TIMEOUT_EXPIRED_TEMPLATE.format(KATEX_STARTUP_TIMEOUT)
+                raise KaTeXError(message)
 
         # Connect to the server through a unix socket
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -250,7 +260,7 @@ def katex_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
 
 
 def configure_pelican(plc):
-    global KATEX_OPTIONS, KATEX_PATH, KATEX_TIMEOUT, KATEX_NODEJS_BINARY
+    global KATEX_OPTIONS, KATEX_PATH, KATEX_TIMEOUT, KATEX_NODEJS_BINARY, KATEX_STARTUP_TIMEOUT
 
     if "KATEX" in plc.settings and isinstance(plc.settings["KATEX"], dict):
         KATEX_OPTIONS.update(plc.settings["KATEX"])
@@ -265,6 +275,9 @@ def configure_pelican(plc):
 
     if "KATEX_TIMEOUT" in plc.settings:
         KATEX_TIMEOUT = float(plc.settings["KATEX_TIMEOUT"])
+
+    if "KATEX_STARTUP_TIMEOUT" in plc.settings:
+        KATEX_STARTUP_TIMEOUT = float(plc.settings["KATEX_STARTUP_TIMEOUT"])
 
     if "KATEX_NODEJS_BINARY" in plc.settings:
         KATEX_NODEJS_BINARY = plc.settings["KATEX_NODEJS_BINARY"]

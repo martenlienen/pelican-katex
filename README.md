@@ -38,6 +38,11 @@ The plugin offers several configuration options that you can set in your
 # alone, you can use this to define a `katex` role for example.
 # KATEX_DIRECTIVE = "katex"
 
+# How long to wait for the initial startup of the rendering server. You can
+# increasing it but if startup takes longer than one second, something is
+# probably seriously broken.
+# KATEX_STARTUP_TIMEOUT = 1.0
+
 # Time budget in seconds per call to the rendering engine. 1 second should
 # be plenty since most renderings take less than 50ms.
 # KATEX_TIMEOUT = 1.0
