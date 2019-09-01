@@ -1,4 +1,4 @@
-# Server-Side LaTeX Typesetting for Pelican
+# LaTeX Pre-rendering for Pelican
 
 This plugin hooks itself directly into docutils' reStructuredText parser to
 render math roles and blocks with [KaTeX](https://github.com/KaTeX/KaTeX) while

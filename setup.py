@@ -5,10 +5,10 @@ with open("README.md", "r") as f:
 
 setup(
     name="pelican-katex",
-    version="1.2.2",
+    version="1.2.2.post1",
     author="Marten Lienen",
     author_email="marten.lienen@gmail.com",
-    description="Server-side LaTeX typesetting for pelican",
+    description="LaTeX pre-rendering for pelican",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/cqql/pelican-katex",
