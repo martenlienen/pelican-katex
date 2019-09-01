@@ -45,7 +45,7 @@ The plugin offers several configuration options that you can set in your
 
 # Time budget in seconds per call to the rendering engine. 1 second should
 # be plenty since most renderings take less than 50ms.
-# KATEX_TIMEOUT = 1.0
+# KATEX_RENDER_TIMEOUT = 1.0
 
 # Here you can pass a dictionary of default options that you want to run
 # KaTeX with. All possible options are listed on KaTeX's options page,

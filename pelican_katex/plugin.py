@@ -17,7 +17,7 @@ SRC_DIR = Path(__file__).parent
 SCRIPT_PATH = str(SRC_DIR / "render-katex.js")
 
 TIMEOUT_EXPIRED_TEMPLATE = (
-    "Rendering {} took too long. Consider increasing KATEX_TIMEOUT"
+    "Rendering {} took too long. Consider increasing KATEX_RENDER_TIMEOUT"
 )
 
 STARTUP_TIMEOUT_EXPIRED_TEMPLATE = (
@@ -40,7 +40,7 @@ KATEX_OPTIONS = {
 KATEX_STARTUP_TIMEOUT = 1.0
 
 # Timeout per rendering request in seconds
-KATEX_TIMEOUT = 1.0
+KATEX_RENDER_TIMEOUT = 1.0
 
 # nodejs binary to run javascript
 KATEX_NODEJS_BINARY = "node"
@@ -194,7 +194,7 @@ def render_latex(latex, options=None):
     request = {"latex": latex, "katex_options": options}
 
     try:
-        response = server.render(request, KATEX_TIMEOUT)
+        response = server.render(request, KATEX_RENDER_TIMEOUT)
 
         if "html" in response:
             return response["html"]
@@ -260,7 +260,7 @@ def katex_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
 
 
 def configure_pelican(plc):
-    global KATEX_OPTIONS, KATEX_PATH, KATEX_TIMEOUT, KATEX_NODEJS_BINARY, KATEX_STARTUP_TIMEOUT
+    global KATEX_OPTIONS, KATEX_PATH, KATEX_RENDER_TIMEOUT, KATEX_NODEJS_BINARY, KATEX_STARTUP_TIMEOUT
 
     if "KATEX" in plc.settings and isinstance(plc.settings["KATEX"], dict):
         KATEX_OPTIONS.update(plc.settings["KATEX"])
@@ -273,8 +273,8 @@ def configure_pelican(plc):
     else:
         rst_name = "math"
 
-    if "KATEX_TIMEOUT" in plc.settings:
-        KATEX_TIMEOUT = float(plc.settings["KATEX_TIMEOUT"])
+    if "KATEX_RENDER_TIMEOUT" in plc.settings:
+        KATEX_RENDER_TIMEOUT = float(plc.settings["KATEX_RENDER_TIMEOUT"])
 
     if "KATEX_STARTUP_TIMEOUT" in plc.settings:
         KATEX_STARTUP_TIMEOUT = float(plc.settings["KATEX_STARTUP_TIMEOUT"])
