@@ -11,6 +11,8 @@ post](https://martenlienen.com/sampling-k-partite-graph-edges/). Notice how all
 the formulas are just there. There is no loading and the website does not even
 serve the javascript part of KaTeX.
 
+Note, that you still need to include the KaTeX stylesheets with your website.
+
 ## Installation
 
 First of all, you need to install `nodejs` so that `pelican-katex` can run
