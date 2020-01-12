@@ -1,10 +1,13 @@
 # LaTeX Pre-rendering for Pelican
 
-This plugin hooks itself directly into docutils' reStructuredText parser to
-render math roles and blocks with [KaTeX](https://github.com/KaTeX/KaTeX) while
-building your blog. Therefore, you do not need to ship the KaTeX javascript
-implementation with your website anymore and improve the accessibility as well
-as the load time of your internet presence.
+`pelican-katex` integrates LaTeX rendering directly into the pelican generation
+process and eliminates the delay in displaying math you usually experience on
+the web. It does so by hooking itself into docutils' reStructuredText parser as
+well as the markdown package and processing the formulas with
+[KaTeX](https://github.com/KaTeX/KaTeX). The generated HTML pages only contain
+the finished HTML/MathML output. Therefore, you do not need to ship the KaTeX
+javascript implementation with your website anymore and improve the
+accessibility as well as the load time of your internet presence.
 
 For a demo visit this [blog
 post](https://martenlienen.com/sampling-k-partite-graph-edges/). Notice how all
@@ -20,6 +23,32 @@ KaTeX. Then run `pip install pelican-katex` and add `"pelican_katex"` to the
 `PlUGINS` setting in your configuration file. Finally, remove the `katex.js`
 `<script>` tag from your template and enjoy a lighter website and instant
 formulas.
+
+## Syntax
+
+```
+reStructuredText
+~~~~~~~~~~~~~~~~
+
+In rst you write inline math with the usual math role (:math:`f(x)`) or
+block math with
+
+.. math::
+
+    \int \textrm{math block}.
+
+# markdown
+
+In markdown you get inline math in between $ signs, like $f(x) = \sqrt{x}$.
+Note, that $ only creates a math environment if it is preceded by whitespace
+or at the beginning of a block and followed by some non-whitespace character.
+This is necessary so that you can still write about the 5$ in your pocket.
+Block math is triggered with
+
+$$\int \textrm{math block}.$$
+
+Math blocks can have linebreaks but no empty lines.
+```
 
 ## Configuration
 
