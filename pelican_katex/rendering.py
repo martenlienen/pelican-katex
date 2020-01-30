@@ -73,7 +73,7 @@ class RenderServer:
 
         # Start the server process
         cmd = cls.build_command(socket_path)
-        process = Popen(cmd, stdin=PIPE, stdout=PIPE)
+        process = Popen(cmd, stdin=PIPE, stdout=PIPE, cwd=rundir)
 
         # Wait for the server to come up and create the socket. Is there a
         # better way to do this?
