@@ -1,10 +1,12 @@
 import atexit
 import json
+import os
 import shutil
 import socket
 import struct
 import tempfile
 import time
+from contextlib import closing, contextmanager
 from pathlib import Path
 from subprocess import PIPE, Popen, TimeoutExpired
 
@@ -41,6 +43,32 @@ KATEX_RENDER_TIMEOUT = 1.0
 KATEX_NODEJS_BINARY = "node"
 
 
+@contextmanager
+def socket_timeout(sock, timeout):
+    """Set the timeout on a socket for a context and restore it afterwards"""
+
+    original = sock.gettimeout()
+    try:
+        sock.settimeout(timeout)
+
+        yield
+    finally:
+        sock.settimeout(original)
+
+
+def free_port():
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        # Reuse sockets without waiting for them to expire
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # Choosing port=0 makes the OS choose a random available port
+        sock.bind(("127.0.0.1", 0))
+
+        # Report the port we were assigned
+        _, port = sock.getsockname()
+        return port
+
+
 class KaTeXError(Exception):
     pass
 
@@ -58,8 +86,19 @@ class RenderServer:
     STOP_TIMEOUT = 0.1
 
     @staticmethod
-    def build_command(socket_path):
-        cmd = [KATEX_NODEJS_BINARY, SCRIPT_PATH, "--socket", str(socket_path)]
+    def timeout_error(self, timeout):
+        message = STARTUP_TIMEOUT_EXPIRED_TEMPLATE.format(timeout)
+        return KaTeXError(message)
+
+    @staticmethod
+    def build_command(socket=None, port=None):
+        cmd = [KATEX_NODEJS_BINARY, SCRIPT_PATH]
+
+        if socket is not None:
+            cmd.extend(["--socket", str(socket)])
+
+        if port is not None:
+            cmd.extend(["--port", str(port)])
 
         if KATEX_PATH:
             cmd.extend(["--katex", str(KATEX_PATH)])
@@ -67,12 +106,11 @@ class RenderServer:
         return cmd
 
     @classmethod
-    def start(cls):
-        rundir = Path(tempfile.mkdtemp(prefix="pelican_katex"))
+    def start_unix_socket(cls, rundir, timeout):
         socket_path = rundir / "katex.sock"
 
         # Start the server process
-        cmd = cls.build_command(socket_path)
+        cmd = cls.build_command(socket=socket_path)
         process = Popen(cmd, stdin=PIPE, stdout=PIPE, cwd=rundir)
 
         # Wait for the server to come up and create the socket. Is there a
@@ -80,13 +118,69 @@ class RenderServer:
         startup_start = time.monotonic()
         while not socket_path.is_socket():
             time.sleep(ONE_MILLISECOND)
-            if time.monotonic() - startup_start > KATEX_STARTUP_TIMEOUT:
-                message = STARTUP_TIMEOUT_EXPIRED_TEMPLATE.format(KATEX_STARTUP_TIMEOUT)
-                raise KaTeXError(message)
+            if time.monotonic() - startup_start > timeout:
+                raise cls.timeout_error(timeout)
 
         # Connect to the server through a unix socket
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(str(socket_path))
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            remaining = startup_start + timeout - time.monotonic()
+            with socket_timeout(sock, remaining):
+                sock.connect(str(socket_path))
+        except socket.timeout:
+            raise cls.timeout_error(timeout)
+
+        return process, sock
+
+    @classmethod
+    def start_network_socket(cls, rundir, timeout):
+        # Start the server on a random free port and connect to it. This is a
+        # possible race condition because the port might be allocated between
+        # checking its freeness and starting the server but it should be good
+        # enough for now.
+        host = "127.0.0.1"
+        port = free_port()
+
+        # Start the server process
+        cmd = cls.build_command(port=port)
+        process = Popen(cmd, stdin=PIPE, stdout=PIPE, cwd=rundir)
+
+        # Connect to the server through a network socket. We need to wait for
+        # the server to create the server socket. A nicer solution which would
+        # also side-step the race condition would be for the server to select
+        # the random port and then print it to stdout. Then python could
+        # select() on stdout to wait for the port/socket path without resorting
+        # to polling. However, select() is not supported for pipes on Windows.
+        startup_start = time.monotonic()
+        while True:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                remaining = startup_start + timeout - time.monotonic()
+                if remaining <= 0.0:
+                    raise cls.timeout_error(timeout)
+
+                with socket_timeout(sock, remaining):
+                    sock.connect((host, port))
+
+                break
+            except ConnectionRefusedError:
+                # The server is not up yet. Try again.
+                time.sleep(ONE_MILLISECOND)
+            except socket.timeout:
+                raise cls.timeout_error(timeout)
+
+        return process, sock
+
+    @classmethod
+    def start(cls):
+        rundir = Path(tempfile.mkdtemp(prefix="pelican_katex"))
+
+        if os.name == "posix":
+            process, sock = cls.start_unix_socket(rundir, KATEX_STARTUP_TIMEOUT)
+        else:
+            # Non-unix systems (i.e. Windows) do not necessarily support unix
+            # domain sockets for IPC, so we fallback to network sockets.
+            process, sock = cls.start_network_socket(rundir, KATEX_STARTUP_TIMEOUT)
 
         server = RenderServer(rundir, process, sock)
 
