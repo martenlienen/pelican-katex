@@ -5,6 +5,7 @@ const process = require("process");
 let state = null;
 let katex_options = {};
 let socket_path = null;
+let socket_port = null;
 let katex_path = "./katex";
 process.argv.forEach(function (arg) {
   if (state == "katex_path") {
@@ -13,11 +14,16 @@ process.argv.forEach(function (arg) {
   } else if (state == "socket_path") {
     socket_path = arg;
     state = null;
+  } else if (state == "socket_port") {
+    socket_port = arg;
+    state = null;
   } else {
     if (arg == "--katex") {
       state = "katex_path";
     } else if (arg == "--socket") {
       state = "socket_path";
+    } else if (arg == "--port") {
+      state = "socket_port";
     } else {
       // Ignore unknown/unexpected arguments, for example the path to this
       // script
@@ -28,10 +34,19 @@ process.argv.forEach(function (arg) {
 // Load the user-configured katex
 const katex = require(katex_path);
 
+let listen_options = {};
+if (socket_path !== null) {
+  listen_options["path"] = socket_path;
+} else if (socket_port !== null) {
+  listen_options["port"] = socket_port;
+  // Do not expose the rendering server on the network
+  listen_options["host"] = "127.0.0.1";
+}
+
 // Start the socket server
 const server = net.createServer();
 server.on("connection", setupClient);
-server.listen(socket_path);
+server.listen(listen_options);
 
 function setupClient(client) {
   // Split the input stream into individual rendering requests
