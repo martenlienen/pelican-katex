@@ -132,6 +132,8 @@ class RenderServer:
         if timeout is not None:
             start_time = time.monotonic()
             self.sock.settimeout(timeout)
+        else:
+            self.sock.settimeout(None)
 
         # Send the request
         request_bytes = json.dumps(request).encode("utf-8")
