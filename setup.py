@@ -16,6 +16,7 @@ setup(
     include_package_data=True,
     install_requires=["pelican", "docutils"],
     extras_require={"markdown": ["markdown"]},
+    tests_require=["pytest", "markdown"],
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: Python :: 3",

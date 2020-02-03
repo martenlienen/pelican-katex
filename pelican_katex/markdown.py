@@ -29,7 +29,8 @@ class KatexPattern(InlineProcessor):
         rendered = render_latex(latex, {"displayMode": display_mode})
         node = markdown.util.etree.fromstring(rendered)
 
-        return node, m.start(), m.end()
+        # Leave any preceding whitespace that we matched on untouched
+        return node, m.start() + len(preceding), m.end()
 
 
 class KatexExtension(Extension):
