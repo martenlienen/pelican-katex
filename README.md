@@ -14,7 +14,14 @@ post](https://martenlienen.com/sampling-k-partite-graph-edges/). Notice how all
 the formulas are just there. There is no loading and the website does not even
 serve the javascript part of KaTeX.
 
-Note, that you still need to include the KaTeX stylesheets with your website.
+Note, that you still need to include the KaTeX stylesheets with your website, for
+example
+
+```html
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css"
+      crossorigin="anonymous">
+```
 
 ## Installation
 
