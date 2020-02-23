@@ -34,6 +34,9 @@ def configure_pelican(plc):
     if "KATEX_NODEJS_BINARY" in plc.settings:
         rendering.KATEX_NODEJS_BINARY = plc.settings["KATEX_NODEJS_BINARY"]
 
+    if "KATEX_PREAMBLE" in plc.settings:
+        rendering.KATEX_PREAMBLE = plc.settings["KATEX_PREAMBLE"]
+
     # Integrate into reStructuredText
     directives.register_directive(rst_name, KatexBlock)
     roles.register_canonical_role(rst_name, katex_role)

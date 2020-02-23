@@ -42,6 +42,9 @@ KATEX_RENDER_TIMEOUT = 1.0
 # nodejs binary to run javascript
 KATEX_NODEJS_BINARY = "node"
 
+# Preamble to prepend to any rendered LaTeX
+KATEX_PREAMBLE = None
+
 
 @contextmanager
 def socket_timeout(sock, timeout):
@@ -282,6 +285,10 @@ def render_latex(latex, options=None):
     if options is not None:
         katex_options = katex_options.copy()
         katex_options.update(options)
+
+    # Prepend the preamble
+    if KATEX_PREAMBLE is not None:
+        latex = KATEX_PREAMBLE + "\n" + latex
 
     server = RenderServer.get()
     request = {"latex": latex, "katex_options": katex_options}

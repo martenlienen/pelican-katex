@@ -85,6 +85,10 @@ The plugin offers several configuration options that you can set in your
 # be plenty since most renderings take less than 50ms.
 # KATEX_RENDER_TIMEOUT = 1.0
 
+# Define a preamble of LaTeX commands that will be prepended to any rendered
+# LaTeX code.
+# KATEX_PREAMBLE = None
+
 # Here you can pass a dictionary of default options that you want to run
 # KaTeX with. All possible options are listed on KaTeX's options page,
 # https://katex.org/docs/options.html.
@@ -93,3 +97,30 @@ The plugin offers several configuration options that you can set in your
 #     "throwOnError": True
 # }
 ```
+
+## Preamble
+
+The `KATEX_PREAMBLE` option allows you to share definitions between all of your
+math blocks across all files. It takes a string of any LaTeX commands you would
+like, for example
+
+```python
+KATEX_PREAMBLE = r"""
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+"""
+```
+
+If you have a large preamble, it might be nice to extract it into a `.tex` file.
+Note, that pelican will not be aware of changes made to that file in autoreload
+mode and you will have to restart pelican manually.
+
+```python
+from pathlib import Path
+KATEX_PREAMBLE = Path("preamble.tex").read_text()
+```
+
+Having a per-file preamble is sadly not possible as of February 23rd, 2020.
+Pelican parses the content and metadata of files at the same time before
+notifying any plugins. So by the time any per-file preamble could be applied,
+the contents of the file have already been parsed.
