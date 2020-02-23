@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+- Add support for a shared preamble across math blocks
+
+## 1.4.0
+
+- Make it work on Windows
+
 ## 1.2.0
 
 - Restructure the plugin into a client-server architecture to eliminate the
