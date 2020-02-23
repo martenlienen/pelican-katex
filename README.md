@@ -106,8 +106,8 @@ like, for example
 
 ```python
 KATEX_PREAMBLE = r"""
-\DeclareMathOperator*{\argmax}{arg\,max}
-\DeclareMathOperator*{\argmin}{arg\,min}
+\def\ceil#1{\lceil #1 \rceil}
+\def\floor#1{\lfloor #1 \rfloor}
 """
 ```
 
