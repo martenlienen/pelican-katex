@@ -15,23 +15,16 @@ class KatexBlock(Directive):
         """Adapted from the original MathBlock directive."""
         self.assert_has_content()
 
-        # Join lines, separate blocks
-        content = "\n".join(self.content).split("\n\n")
 
         try:
-            nodes = []
-            for block in content:
-                if not block or len(block) == 0:
-                    continue
+            content = "\n".join(self.content)
+            html = render_latex(content, {"displayMode": True})
+            node = docutils.nodes.raw(self.block_text, html, format="html")
+            node.line = self.content_offset + 1
 
-                html = render_latex(block, {"displayMode": True})
-                node = docutils.nodes.raw(self.block_text, html, format="html")
-                node.line = self.content_offset + 1
+            self.add_name(node)
 
-                self.add_name(node)
-                nodes.append(node)
-
-            return nodes
+            return [node]
         except KaTeXError as e:
             raise self.error(str(e))
 
