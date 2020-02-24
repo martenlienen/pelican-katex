@@ -1,6 +1,7 @@
 import markdown
 from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
+from markdown.util import AtomicString
 
 from .rendering import KaTeXError, render_latex
 
@@ -28,6 +29,12 @@ class KatexPattern(InlineProcessor):
         display_mode = True if delimiter == "$$" else False
         rendered = render_latex(latex, {"displayMode": display_mode})
         node = markdown.util.etree.fromstring(rendered)
+
+        # Mark any text in the rendered output as atomic so that it is not
+        # recursively parsed as markdown
+        for elem in node.iter():
+            if elem.text is not None:
+                elem.text = AtomicString(elem.text)
 
         # Leave any preceding whitespace that we matched on untouched
         return node, m.start() + len(preceding), m.end()
