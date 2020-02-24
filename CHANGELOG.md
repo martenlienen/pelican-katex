@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0
+
+- Add per-file preambles
+- Two small bugfixes
+
 ## 1.5.0
 
 - Add support for a shared preamble across math blocks
