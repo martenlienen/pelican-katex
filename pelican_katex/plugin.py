@@ -46,5 +46,13 @@ def configure_pelican(plc):
         plc.settings["MARKDOWN"].setdefault("extensions", []).append(KatexExtension())
 
 
+def reset_preamble(*args, **kwargs):
+    """Reset the file-local preamble after every file"""
+    rendering.reset_preamble()
+
+
 def register():
     signals.initialized.connect(configure_pelican)
+    signals.article_writer_finalized.connect(reset_preamble)
+    signals.page_writer_finalized.connect(reset_preamble)
+    signals.static_generator_finalized.connect(reset_preamble)

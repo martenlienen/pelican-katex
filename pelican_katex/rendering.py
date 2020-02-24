@@ -45,6 +45,30 @@ KATEX_NODEJS_BINARY = "node"
 # Preamble to prepend to any rendered LaTeX
 KATEX_PREAMBLE = None
 
+# A list of file-local additions to the preamble
+LOCAL_PREAMBLES = []
+
+
+def push_preamble(preamble):
+    LOCAL_PREAMBLES.append(preamble)
+
+
+def reset_preamble():
+    LOCAL_PREAMBLES.clear()
+
+
+def get_preamble():
+    preamble = KATEX_PREAMBLE
+
+    if len(LOCAL_PREAMBLES) > 0:
+        local_preamble = "\n".join(LOCAL_PREAMBLES)
+        if preamble is None:
+            preamble = local_preamble
+        else:
+            preamble += "\n" + local_preamble
+
+    return preamble
+
 
 @contextmanager
 def socket_timeout(sock, timeout):
@@ -287,8 +311,9 @@ def render_latex(latex, options=None):
         katex_options.update(options)
 
     # Prepend the preamble
-    if KATEX_PREAMBLE is not None:
-        latex = KATEX_PREAMBLE + "\n" + latex
+    preamble = get_preamble()
+    if preamble is not None:
+        latex = preamble + "\n" + latex
 
     server = RenderServer.get()
     request = {"latex": latex, "katex_options": katex_options}

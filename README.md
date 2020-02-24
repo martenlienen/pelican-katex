@@ -120,7 +120,38 @@ from pathlib import Path
 KATEX_PREAMBLE = Path("preamble.tex").read_text()
 ```
 
-Having a per-file preamble is sadly not possible as of February 23rd, 2020.
-Pelican parses the content and metadata of files at the same time before
-notifying any plugins. So by the time any per-file preamble could be applied,
-the contents of the file have already been parsed.
+You can also add more definitions per file to the preamble with preamble-blocks
+that do not produce any output.
+
+```
+reStructuredText
+~~~~~~~~~~~~~~~~
+
+.. math::
+   :preamble:
+
+   \def\pelican{\textrm{pelican}^2}
+
+This definition will be available in subsequent blocks
+
+.. math::
+
+   \sqrt{\pelican}
+
+or inline :math:`\pelican = 1`.
+
+# markdown
+
+In markdown it is not as easy to define properties of blocks, so we chose to
+start a preamble block with an @ such as
+
+$$@
+\def\pelican{\textrm{pelican}^2}
+$$
+
+which works just the same in blocks
+
+$$\sqrt{\pelican}$$
+
+or inline $\pelican = 1$.
+```

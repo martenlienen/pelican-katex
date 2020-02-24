@@ -3,21 +3,28 @@ import re
 import docutils
 from docutils.parsers.rst import Directive, directives, roles
 
-from .rendering import KaTeXError, render_latex
+from .rendering import KaTeXError, push_preamble, render_latex
 
 
 class KatexBlock(Directive):
     """A docutils block that renders its content with KaTeX."""
 
     has_content = True
+    option_spec = {"preamble": bool}
 
     def run(self):
         """Adapted from the original MathBlock directive."""
         self.assert_has_content()
 
+        content = "\n".join(self.content)
+
+        if "preamble" in self.options:
+            # Add the content (presumably definitions) to the preamble for this
+            # file but don't produce any content
+            push_preamble(content)
+            return []
 
         try:
-            content = "\n".join(self.content)
             html = render_latex(content, {"displayMode": True})
             node = docutils.nodes.raw(self.block_text, html, format="html")
             node.line = self.content_offset + 1

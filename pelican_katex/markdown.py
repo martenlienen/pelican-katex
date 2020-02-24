@@ -3,7 +3,7 @@ from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
 from markdown.util import AtomicString
 
-from .rendering import KaTeXError, render_latex
+from .rendering import KaTeXError, push_preamble, render_latex
 
 PATTERN = r"(?P<preceding>\s?)(?P<delimiter>\$\$?)(?P<latex>[\S\n].*?)(?P=delimiter)"
 
@@ -26,6 +26,16 @@ class KatexPattern(InlineProcessor):
         if len(preceding) == 0 and m.start() > 0:
             return None, m.start() + 1, m.start() + 1
 
+        # Leave any preceding whitespace that we matched on untouched
+        match_start = m.start() + len(preceding)
+        match_end = m.end()
+
+        # If a math block starts with an @, it is a preamble block and does not
+        # produce any output
+        if len(delimiter) == 2 and len(latex) > 0 and latex[0] == "@":
+            push_preamble(latex[1:])
+            return "", match_start, match_end
+
         display_mode = True if delimiter == "$$" else False
         rendered = render_latex(latex, {"displayMode": display_mode})
         node = markdown.util.etree.fromstring(rendered)
@@ -36,8 +46,7 @@ class KatexPattern(InlineProcessor):
             if elem.text is not None:
                 elem.text = AtomicString(elem.text)
 
-        # Leave any preceding whitespace that we matched on untouched
-        return node, m.start() + len(preceding), m.end()
+        return node, match_start, match_end
 
 
 class KatexExtension(Extension):
