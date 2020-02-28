@@ -1,4 +1,5 @@
-import markdown
+from xml.etree import ElementTree
+
 from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
 from markdown.util import AtomicString
@@ -38,7 +39,7 @@ class KatexPattern(InlineProcessor):
 
         display_mode = True if delimiter == "$$" else False
         rendered = render_latex(latex, {"displayMode": display_mode})
-        node = markdown.util.etree.fromstring(rendered)
+        node = ElementTree.fromstring(rendered)
 
         # Mark any text in the rendered output as atomic so that it is not
         # recursively parsed as markdown
