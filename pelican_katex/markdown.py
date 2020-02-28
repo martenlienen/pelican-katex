@@ -6,6 +6,36 @@ from markdown.util import AtomicString
 
 from .rendering import KaTeXError, push_preamble, render_latex
 
+
+def revert_xmlns_resolution(root):
+    """Revert the xmlns resolution that ElementTree performs upon parsing
+
+    ElementTree resolves each tag into its universal name during parsing, see
+    [1]. The nice solution would be to wrap each such element tag and attribute
+    name into a ElementTree.QName which the Markdown package supports properly
+    in its serialization. However, at other points the Markdown package makes
+    use of the contract of ElementTree.Element that says that its tag and
+    attribute names are always either strings or bytes and calls for example
+    .lower() on it. Therefore, we revert this "universalization" manually.
+
+    [1] http://effbot.org/zone/element-namespaces.htm
+    """
+
+    candidates = [(root, None)]
+    while len(candidates) > 0:
+        node, namespace = candidates.pop()
+
+        if node.tag.startswith("{") and "}" in node.tag:
+            this_namespace, node.tag = node.tag[1:].split("}", maxsplit=1)
+
+            # The xmlns is inherited so only set it when the namespace changes
+            if this_namespace != namespace:
+                node.attrib["xmlns"] = this_namespace
+                namespace = this_namespace
+
+        candidates.extend((child, namespace) for child in node)
+
+
 PATTERN = r"(?P<preceding>\s?)(?P<delimiter>\$\$?)(?P<latex>[\S\n].*?)(?P=delimiter)"
 
 
@@ -40,6 +70,9 @@ class KatexPattern(InlineProcessor):
         display_mode = True if delimiter == "$$" else False
         rendered = render_latex(latex, {"displayMode": display_mode})
         node = ElementTree.fromstring(rendered)
+
+        # Side-step the whole xmlns and QName problem
+        revert_xmlns_resolution(node)
 
         # Mark any text in the rendered output as atomic so that it is not
         # recursively parsed as markdown
