@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+
+- Serialize the namespace of `math` elements in markdown properly
+
 ## 1.6.0
 
 - Add per-file preambles
