@@ -1,4 +1,5 @@
 from .rendering_katex  import render_latex_katex
+from .rendering_mathml import render_latex_mathml
 
 
 # Default KaTeX options.
@@ -65,4 +66,7 @@ def render_latex(latex, options=None):
         KaTeX-style options such as displayMode
     """
 
-    return render_latex_katex(latex, options)
+    if KATEX_MATHML:
+        return render_latex_mathml(latex, options)
+    else:
+        return render_latex_katex(latex, options)

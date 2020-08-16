@@ -37,6 +37,9 @@ def configure_pelican(plc):
     if "KATEX_PREAMBLE" in plc.settings:
         rendering.KATEX_PREAMBLE = plc.settings["KATEX_PREAMBLE"]
 
+    if "KATEX_MATHML" in plc.settings:
+        rendering.KATEX_MATHML = plc.settings["KATEX_MATHML"]
+
     # Integrate into reStructuredText
     directives.register_directive(rst_name, KatexBlock)
     roles.register_canonical_role(rst_name, katex_role)

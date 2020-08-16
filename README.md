@@ -96,6 +96,10 @@ The plugin offers several configuration options that you can set in your
 #     # Abort the build instead of coloring broken math in red
 #     "throwOnError": True
 # }
+
+# Alternatively, you can use the latex2mathml python module instead of KaTeX
+# It is more limited, but faster and doesn't need NodeJS
+# KATEX_MATHML = True
 ```
 
 ## Preamble
