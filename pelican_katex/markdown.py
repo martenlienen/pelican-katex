@@ -36,8 +36,7 @@ def revert_xmlns_resolution(root):
         candidates.extend((child, namespace) for child in node)
 
 
-PATTERN = r"(?P<preceding>\s?)(?P<delimiter>\$\$?)(?P<latex>[\S\n].*?)(?P=delimiter)"
-
+PATTERN = r"(?P<preceding>\s?)(?P<delimiter>(\$\$?)|(\\begin{equation}))(?P<latex>[\S\n]?.*?[\S\n]?)((?P=delimiter)|\\end{equation})"
 
 class KatexPattern(InlineProcessor):
     def __init__(self, md=None):
@@ -67,7 +66,7 @@ class KatexPattern(InlineProcessor):
             push_preamble(latex[1:])
             return "", match_start, match_end
 
-        display_mode = True if delimiter == "$$" else False
+        display_mode = delimiter in ("$$","\\begin{equation}")
         rendered = render_latex(latex, {"displayMode": display_mode})
         node = ElementTree.fromstring(rendered)
 

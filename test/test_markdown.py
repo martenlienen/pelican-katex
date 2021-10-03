@@ -44,6 +44,14 @@ def test_double_dollar_renders_inline_math():
     assert template == output
 
 
+def test_equation_environment_display_block():
+    input = "\\begin{equation}\n\\exp \\pi \n\\end{equation}"
+    output = markdown.markdown(input, extensions=[KatexExtension()])
+
+    template = HTMLTemplate('<p><span class="katex-display">...</span></p>')
+    assert template == output
+
+
 def test_preamble_block_does_not_show_up():
     input = "$$@\\def\\pelican{x^2}$$\nUse it\n$$\\pelican = 1$$"
     output = markdown.markdown(input, extensions=[KatexExtension()])
