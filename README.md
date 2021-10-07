@@ -10,9 +10,9 @@ javascript implementation with your website anymore and improve the
 accessibility as well as the load time of your internet presence.
 
 For a demo visit this [blog
-post](https://martenlienen.com/blog/sampling-k-partite-graph-edges/). Notice how all
-the formulas are just there. There is no loading and the website does not even
-serve the javascript part of KaTeX.
+post](https://martenlienen.com/blog/gaussian-processes-are-bayesian-linear-regression/).
+Notice how all the formulas are just there. There is no loading and the website
+does not even serve the javascript part of KaTeX.
 
 Note, that you still need to include the KaTeX stylesheets with your website, for
 example
