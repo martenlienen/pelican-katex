@@ -11,7 +11,7 @@ setup(
     description="LaTeX pre-rendering for pelican",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/cqql/pelican-katex",
+    url="https://github.com/martenlienen/pelican-katex",
     packages=find_packages(),
     include_package_data=True,
     install_requires=["pelican", "docutils"],
