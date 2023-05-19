@@ -38,7 +38,7 @@ class KatexBlock(Directive):
 
 # To avoid having to escape all backslashes (which you usually have quite a bit
 # of in LaTeX), we re-parse the role content from the raw text.
-ROLE_TEXT_RE = re.compile("\A:.+:`((?s:.)+)`\Z")
+ROLE_TEXT_RE = re.compile(r"\A:.+:`((?s:.)+)`\Z")
 
 
 def katex_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
