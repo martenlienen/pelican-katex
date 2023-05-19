@@ -1,7 +1,7 @@
 import re
 
 import docutils
-from docutils.parsers.rst import Directive, directives, roles
+from docutils.parsers.rst import Directive
 
 from .rendering import KaTeXError, push_preamble, render_latex
 

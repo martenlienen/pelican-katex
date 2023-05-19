@@ -1,4 +1,4 @@
-from docutils.parsers.rst import Directive, directives, roles
+from docutils.parsers.rst import directives, roles
 from pelican import signals
 
 import pelican_katex.rendering as rendering
@@ -9,7 +9,7 @@ try:
     from .markdown import KatexExtension
 
     markdown_available = True
-except ImportError as e:
+except ImportError:
     markdown_available = False
 
 

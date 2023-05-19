@@ -4,7 +4,7 @@ from markdown.extensions import Extension
 from markdown.inlinepatterns import InlineProcessor
 from markdown.util import AtomicString
 
-from .rendering import KaTeXError, push_preamble, render_latex
+from .rendering import push_preamble, render_latex
 
 
 def revert_xmlns_resolution(root):
