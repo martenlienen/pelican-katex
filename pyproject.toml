@@ -1,0 +1,31 @@
+[build-system]
+requires = ["flit_core ~= 3.9"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "pelican-katex"
+dynamic = ["version", "description"]
+readme = "README.md"
+requires-python = ">= 3.6"
+license = {file = "LICENSE"}
+authors = [{name = "Marten Lienen", email = "marten.lienen@gmail.com"}]
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Programming Language :: Python :: 3",
+  "Framework :: Pelican :: Plugins",
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Education",
+]
+dependencies = [
+  "pelican",
+  "docutils",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "markdown", "lxml"]
+markdown = ["markdown"]
+
+[project.urls]
+homepage = "https://github.com/martenlienen/pelican-katex"
