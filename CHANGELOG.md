@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0
+
+- Update the bundled katex to 0.16.7
+
 ## 1.6.1
 
 - Serialize the namespace of `math` elements in markdown properly
