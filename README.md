@@ -49,8 +49,9 @@ block math with
 In markdown you get inline math in between $ signs, like $f(x) = \sqrt{x}$.
 Note, that $ only creates a math environment if it is preceded by whitespace
 or at the beginning of a block and followed by some non-whitespace character.
-This is necessary so that you can still write about the 5$ in your pocket.
-Block math is triggered with
+This is necessary so that you can still write about the 5$ in your pocket. To
+write a dollar sign preceded by whitespace, escape it with a backslash as in
+\$10. Block math is triggered with
 
 $$\int \textrm{math block}.$$
 

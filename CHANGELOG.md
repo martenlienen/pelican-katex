@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.0
+
+- Allow escaping dollar delimiters in markdown with backslash
+
 ## 1.7.0
 
 - Update the bundled katex to 0.16.7

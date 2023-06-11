@@ -1,7 +1,7 @@
 import markdown
+from pelican_katex.markdown import KatexExtension
 
 from html_template import HTMLTemplate
-from pelican_katex.markdown import KatexExtension
 
 
 def test_renders_standalone_inline_math():
@@ -51,9 +51,20 @@ def test_preamble_block_does_not_show_up():
     template = HTMLTemplate('<p>\nUse it\n<span class="katex-display">...</span></p>')
     assert template == output
 
+
 def test_backslash_escapes_dollar_delimiter():
     input = r"My bank account has \$1 and my wallet \$0."
     output = markdown.markdown(input, extensions=[KatexExtension()])
 
-    template = HTMLTemplate(f"<p>{input}</p>")
+    target = input.replace("\\", "")
+    template = HTMLTemplate(f"<p>{target}</p>")
+    assert template == output
+
+
+def test_backslash_escapes_double_dollar_delimiter():
+    input = r"A is \$$1 and B is \$$10."
+    output = markdown.markdown(input, extensions=[KatexExtension()])
+
+    target = input.replace("\\", "")
+    template = HTMLTemplate(f"<p>{target}</p>")
     assert template == output

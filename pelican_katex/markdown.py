@@ -83,8 +83,24 @@ class KatexPattern(InlineProcessor):
         return node, match_start, match_end
 
 
+ESCAPE_PATTERN = r"\\(?P<delimiter>\$\$?)"
+
+
+class DollarEscapePattern(InlineProcessor):
+    """Allow escaping dollar delimiters with backslash."""
+
+    def __init__(self, md=None):
+        super().__init__(pattern=ESCAPE_PATTERN, md=md)
+
+    def handleMatch(self, m, data):
+        delimiter = m.group("delimiter")
+
+        return delimiter, m.start(), m.end()
+
+
 class KatexExtension(Extension):
     def extendMarkdown(self, md):
         # render_math uses priority 186 as well because apparently it needs to be
         # higher than 180 which some "escape" extension uses.
         md.inlinePatterns.register(KatexPattern(md), "katex", 186)
+        md.inlinePatterns.register(DollarEscapePattern(md), "katex-dollar-escape", 185)
