@@ -36,7 +36,7 @@ def test_leaves_currencies_alone():
     assert template == output
 
 
-def test_double_dollar_renders_inline_math():
+def test_double_dollar_renders_display_math():
     input = "$$x^2$$"
     output = markdown.markdown(input, extensions=[KatexExtension()])
 
