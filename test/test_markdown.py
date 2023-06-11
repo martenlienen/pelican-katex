@@ -50,3 +50,10 @@ def test_preamble_block_does_not_show_up():
 
     template = HTMLTemplate('<p>\nUse it\n<span class="katex-display">...</span></p>')
     assert template == output
+
+def test_backslash_escapes_dollar_delimiter():
+    input = r"My bank account has \$1 and my wallet \$0."
+    output = markdown.markdown(input, extensions=[KatexExtension()])
+
+    template = HTMLTemplate(f"<p>{input}</p>")
+    assert template == output
