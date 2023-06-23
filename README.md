@@ -90,6 +90,10 @@ The plugin offers several configuration options that you can set in your
 # LaTeX code.
 # KATEX_PREAMBLE = None
 
+# Change the delimiter character for markdown files:
+#
+# KATEX_MD_DELIMITER = ‘$’
+
 # Here you can pass a dictionary of default options that you want to run
 # KaTeX with. All possible options are listed on KaTeX's options page,
 # https://katex.org/docs/options.html.

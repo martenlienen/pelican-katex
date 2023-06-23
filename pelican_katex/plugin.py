@@ -43,7 +43,8 @@ def configure_pelican(plc):
 
     # Integrate into markdown
     if markdown_available:
-        plc.settings["MARKDOWN"].setdefault("extensions", []).append(KatexExtension())
+        mdext = KatexExtension(delimiter=plc.settings.get("KATEX_MD_DELIMITER", '$'))
+        plc.settings["MARKDOWN"].setdefault("extensions", []).append(mdext)
 
 
 def reset_preamble(*args, **kwargs):

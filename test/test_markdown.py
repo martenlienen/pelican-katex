@@ -68,3 +68,25 @@ def test_backslash_escapes_double_dollar_delimiter():
     target = input.replace("\\", "")
     template = HTMLTemplate(f"<p>{target}</p>")
     assert template == output
+
+def test_changed_delimiter_inline():
+    ext = KatexExtension(delimiter='~')
+    input = "Hello ~x^2~ world!"
+    output = markdown.markdown(input, extensions=[ext])
+    template = HTMLTemplate('<p>Hello <span class="katex">...</span> world!</p>')
+    assert template == output
+
+def test_changed_delimiter_displaymode():
+    ext = KatexExtension(delimiter='~')
+    input = "~~x^2~~"
+    output = markdown.markdown(input, extensions=[ext])
+    template = HTMLTemplate('<p><span class="katex-display">...</span></p>')
+    assert template == output
+
+def test_changed_delimiter_escape():
+    ext = KatexExtension(delimiter='~')
+    input = r"There are \~900 pages in this book"
+    output = markdown.markdown(input, extensions=[ext])
+    target = input.replace("\\", "")
+    template = HTMLTemplate(f"<p>{target}</p>")
+    assert template == output

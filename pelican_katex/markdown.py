@@ -1,3 +1,4 @@
+import re
 from xml.etree import ElementTree
 
 from markdown.extensions import Extension
@@ -36,12 +37,21 @@ def revert_xmlns_resolution(root):
         candidates.extend((child, namespace) for child in node)
 
 
-PATTERN = r"(?P<preceding>\s?)(?P<delimiter>\$\$?)(?P<latex>[\S\n].*?)(?P=delimiter)"
 
 
 class KatexPattern(InlineProcessor):
-    def __init__(self, md=None):
-        super().__init__(pattern=PATTERN, md=md)
+    PATTERN = (
+        r"(?P<preceding>\s?)"
+        r"(?P<delimiter>{delim}{delim}?)"
+        r"(?P<latex>[\S\n].*?)"
+        r"(?P=delimiter)"
+        )
+
+    def __init__(self, md=None, delimiter='$'):
+        if len(delimiter) != 1:
+            raise ValueError("delimiter must be a single character")
+        pattern = self.PATTERN.format(delim=re.escape(delimiter))
+        super().__init__(pattern=pattern, md=md)
 
     def handleMatch(self, m, data):
         preceding = m.group("preceding")
@@ -67,8 +77,7 @@ class KatexPattern(InlineProcessor):
             push_preamble(latex[1:])
             return "", match_start, match_end
 
-        display_mode = True if delimiter == "$$" else False
-        rendered = render_latex(latex, {"displayMode": display_mode})
+        rendered = render_latex(latex, {"displayMode": len(delimiter) == 2})
         node = ElementTree.fromstring(rendered)
 
         # Side-step the whole xmlns and QName problem
@@ -83,14 +92,14 @@ class KatexPattern(InlineProcessor):
         return node, match_start, match_end
 
 
-ESCAPE_PATTERN = r"\\(?P<delimiter>\$\$?)"
-
-
-class DollarEscapePattern(InlineProcessor):
+class KatexEscapePattern(InlineProcessor):
     """Allow escaping dollar delimiters with backslash."""
 
-    def __init__(self, md=None):
-        super().__init__(pattern=ESCAPE_PATTERN, md=md)
+    PATTERN = r"\\(?P<delimiter>{delim}{delim}?)"
+
+    def __init__(self, md=None, delimiter='$'):
+        pattern = self.PATTERN.format(delim=re.escape(delimiter))
+        super().__init__(pattern=pattern, md=md)
 
     def handleMatch(self, m, data):
         delimiter = m.group("delimiter")
@@ -99,8 +108,13 @@ class DollarEscapePattern(InlineProcessor):
 
 
 class KatexExtension(Extension):
+    def __init__(self, *args, **kwargs):
+        self.config = {'delimiter': ['$', 'katex delimiter']}
+        super().__init__(*args, **kwargs)
+
     def extendMarkdown(self, md):
         # render_math uses priority 186 as well because apparently it needs to be
         # higher than 180 which some "escape" extension uses.
-        md.inlinePatterns.register(KatexPattern(md), "katex", 186)
-        md.inlinePatterns.register(DollarEscapePattern(md), "katex-dollar-escape", 185)
+        delim = self.getConfig('delimiter')
+        md.inlinePatterns.register(KatexPattern(md, delim), "katex", 186)
+        md.inlinePatterns.register(KatexEscapePattern(md, delim), "katex-dollar-escape", 185)
