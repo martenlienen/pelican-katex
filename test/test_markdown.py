@@ -29,10 +29,18 @@ def test_renders_inline_math_in_front_of_punctuation():
 
 
 def test_leaves_currencies_alone():
-    input = "I have 10$."
+    input = "I have 10$ and 20$."
     output = markdown.markdown(input, extensions=[KatexExtension()])
 
-    template = HTMLTemplate("<p>I have 10$.</p>")
+    template = HTMLTemplate("<p>I have 10$ and 20$.</p>")
+    assert template == output
+
+
+def test_ignores_dollar_followed_by_alnum_character():
+    input = "A coin is $1 and stored in $A register."
+    output = markdown.markdown(input, extensions=[KatexExtension()])
+
+    template = HTMLTemplate("<p>A coin is $1 and stored in $A register.</p>")
     assert template == output
 
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.1
+
+- Ignore delimiters in markdown that are followed by alphanumeric characters
+
 ## 1.8.0
 
 - Allow escaping dollar delimiters in markdown with backslash

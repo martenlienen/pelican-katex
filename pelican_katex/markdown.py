@@ -36,7 +36,14 @@ def revert_xmlns_resolution(root):
         candidates.extend((child, namespace) for child in node)
 
 
-PATTERN = r"(?P<preceding>\s?)(?P<delimiter>\$\$?)(?P<latex>[\S\n].*?)(?P=delimiter)"
+PATTERN = (
+    r"(?P<preceding>\s?)"
+    r"(?P<delimiter>\$\$?)"
+    r"(?P<latex>[\S\n].*?)"
+    # Only accept closing delimiters that are not followed by word characters
+    # (alpha-numeric or underscore) or at the end of the string.
+    r"(?P=delimiter)(?=\W|\Z)"
+)
 
 
 class KatexPattern(InlineProcessor):
