@@ -4,6 +4,7 @@
 
 - Render markdown math following non-alpha-numeric characters to allow, e.g., inline math
   in parentheses, see #15
+- Upgrade the bundled katex to 0.16.9
 
 ## 1.8.1
 
