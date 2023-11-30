@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.2
+
+- Render markdown math following non-alpha-numeric characters to allow, e.g., inline math
+  in parentheses, see #15
+
 ## 1.8.1
 
 - Ignore delimiters in markdown that are followed by alphanumeric characters

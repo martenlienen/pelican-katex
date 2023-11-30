@@ -37,7 +37,8 @@ def revert_xmlns_resolution(root):
 
 
 PATTERN = (
-    r"(?P<preceding>\s?)"
+    # Begin math environments after any character except alpha-numeric ones or backslash
+    r"(?P<preceding>[^a-zA-Z0-9_\\\$]?)"
     r"(?P<delimiter>\$\$?)"
     r"(?P<latex>[\S\n].*?)"
     # Only accept closing delimiters that are not followed by word characters

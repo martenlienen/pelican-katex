@@ -28,6 +28,14 @@ def test_renders_inline_math_in_front_of_punctuation():
     assert template == output
 
 
+def test_renders_inline_math_between_parentheses():
+    input = "orthogonal ($u \cot v$) basis"
+    output = markdown.markdown(input, extensions=[KatexExtension()])
+
+    template = HTMLTemplate('<p>orthogonal (<span class="katex">...</span>) basis</p>')
+    assert template == output
+
+
 def test_leaves_currencies_alone():
     input = "I have 10$ and 20$."
     output = markdown.markdown(input, extensions=[KatexExtension()])
