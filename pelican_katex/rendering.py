@@ -119,6 +119,13 @@ class RenderServer:
 
     @staticmethod
     def build_command(socket=None, port=None):
+        if shutil.which(KATEX_NODEJS_BINARY) is None:
+            raise KaTeXError(
+                f"Cannot find the Node.js binary {KATEX_NODEJS_BINARY}. "
+                "Make sure Node.js is installed and the KATEX_NODEJS_BINARY setting "
+                "points to a valid executable."
+            )
+
         cmd = [KATEX_NODEJS_BINARY, SCRIPT_PATH]
 
         if socket is not None:
