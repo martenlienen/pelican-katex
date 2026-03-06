@@ -29,7 +29,7 @@ def test_renders_inline_math_in_front_of_punctuation():
 
 
 def test_renders_inline_math_between_parentheses():
-    input = "orthogonal ($u \cot v$) basis"
+    input = r"orthogonal ($u \cot v$) basis"
     output = markdown.markdown(input, extensions=[KatexExtension()])
 
     template = HTMLTemplate('<p>orthogonal (<span class="katex">...</span>) basis</p>')
