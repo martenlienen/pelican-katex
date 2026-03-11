@@ -1,12 +1,15 @@
 const net = require("net");
 const process = require("process");
+const fs = require("fs");
+const path = require("path");
 
 // Parse the command line arguments
 let state = null;
-let katex_options = {};
 let socket_path = null;
 let socket_port = null;
-let katex_path = "./katex";
+const katexFile = fs.readdirSync(__dirname).find((f) => /^katex\.\d+\.\d+\.\d+\.js$/.test(f));
+let katex_path = katexFile ? path.join(__dirname, katexFile) : "./katex";
+console.log(`Using KaTeX from ${katex_path}`);
 process.argv.forEach(function (arg) {
   if (state == "katex_path") {
     katex_path = arg;
