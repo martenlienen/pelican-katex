@@ -113,7 +113,7 @@ class RenderServer:
     STOP_TIMEOUT = 0.1
 
     @staticmethod
-    def timeout_error(self, timeout):
+    def timeout_error(timeout):
         message = STARTUP_TIMEOUT_EXPIRED_TEMPLATE.format(timeout)
         return KaTeXError(message)
 
