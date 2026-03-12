@@ -1,4 +1,5 @@
 import atexit
+import glob
 import json
 import os
 import shutil
@@ -47,6 +48,26 @@ KATEX_PREAMBLE = None
 
 # A list of file-local additions to the preamble
 LOCAL_PREAMBLES = []
+
+
+def resolve_katex_path():
+    if KATEX_PATH:
+        return str(KATEX_PATH)
+
+    bundled = glob.glob(str(SRC_DIR / "katex.*.js"))
+    if len(bundled) == 1:
+        return bundled[0]
+
+    if len(bundled) == 0:
+        raise KaTeXError(
+            "Could not find bundled KaTeX file matching pelican_katex/katex.*.js. "
+            "Set KATEX_PATH to a valid katex.js file or module path."
+        )
+
+    raise KaTeXError(
+        "Expected exactly one bundled KaTeX file matching pelican_katex/katex.*.js, "
+        f"found {len(bundled)}. Set KATEX_PATH explicitly."
+    )
 
 
 def push_preamble(preamble):
@@ -134,8 +155,7 @@ class RenderServer:
         if port is not None:
             cmd.extend(["--port", str(port)])
 
-        if KATEX_PATH:
-            cmd.extend(["--katex", str(KATEX_PATH)])
+        cmd.extend(["--katex", resolve_katex_path()])
 
         return cmd
 
