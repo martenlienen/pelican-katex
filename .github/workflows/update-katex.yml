@@ -17,136 +17,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Detect current bundled KaTeX version
-        id: current
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          shopt -s nullglob
-          files=(pelican_katex/katex.*.js)
-          shopt -u nullglob
-
-          if [[ ${#files[@]} -ne 1 ]]; then
-            echo "Expected exactly one file matching pelican_katex/katex.*.js, found ${#files[@]}"
-            printf '%s\n' "${files[@]:-<none>}"
-            exit 1
-          fi
-
-          file_path="${files[0]}"
-          file_name="$(basename "$file_path")"
-
-          if [[ "$file_name" =~ ^katex\.([0-9]+\.[0-9]+\.[0-9]+)\.js$ ]]; then
-            current_version="${BASH_REMATCH[1]}"
-          else
-            echo "Could not parse version from file name: $file_name"
-            exit 1
-          fi
-
-          echo "file_path=$file_path" >> "$GITHUB_OUTPUT"
-          echo "file_name=$file_name" >> "$GITHUB_OUTPUT"
-          echo "version=$current_version" >> "$GITHUB_OUTPUT"
-
-      - name: Query latest KaTeX release
-        id: latest
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          python3 - <<'PY' > release.json
-          import json
-          import urllib.request
-
-          url = "https://api.github.com/repos/KaTeX/KaTeX/releases/latest"
-          req = urllib.request.Request(
-              url,
-              headers={"Accept": "application/vnd.github+json"},
-          )
-          with urllib.request.urlopen(req) as response:
-              data = json.load(response)
-
-          version = data["tag_name"].lstrip("v")
-          assets = data.get("assets", [])
-          zip_url = None
-          for asset in assets:
-              if asset.get("name") == "katex.zip":
-                  zip_url = asset.get("browser_download_url")
-                  break
-
-          if not zip_url:
-              raise SystemExit("katex.zip asset was not found in latest release")
-
-          print(json.dumps({"version": version, "zip_url": zip_url}))
-          PY
-
-          latest_version="$(python3 - <<'PY'
-          import json
-          print(json.load(open("release.json"))["version"])
-          PY
-          )"
-
-          zip_url="$(python3 - <<'PY'
-          import json
-          print(json.load(open("release.json"))["zip_url"])
-          PY
-          )"
-
-          echo "version=$latest_version" >> "$GITHUB_OUTPUT"
-          echo "zip_url=$zip_url" >> "$GITHUB_OUTPUT"
-
-      - name: Compare versions
-        id: compare
-        shell: bash
-        env:
-          CURRENT_VERSION: ${{ steps.current.outputs.version }}
-          LATEST_VERSION: ${{ steps.latest.outputs.version }}
-        run: |
-          set -euo pipefail
-
-          newer="$(python3 - <<'PY'
-          import os
-
-          current = tuple(int(x) for x in os.environ["CURRENT_VERSION"].split("."))
-          latest = tuple(int(x) for x in os.environ["LATEST_VERSION"].split("."))
-          print("true" if latest > current else "false")
-          PY
-          )"
-
-          echo "newer=$newer" >> "$GITHUB_OUTPUT"
-          echo "Current: $CURRENT_VERSION"
-          echo "Latest:  $LATEST_VERSION"
-
-      - name: Download and replace bundled KaTeX
-        if: steps.compare.outputs.newer == 'true'
-        shell: bash
-        env:
-          ZIP_URL: ${{ steps.latest.outputs.zip_url }}
-          NEW_VERSION: ${{ steps.latest.outputs.version }}
-          OLD_FILE: ${{ steps.current.outputs.file_path }}
-        run: |
-          set -euo pipefail
-
-          tmp_dir="$(mktemp -d)"
-          trap 'rm -rf "$tmp_dir"' EXIT
-
-          curl -fsSL "$ZIP_URL" -o "$tmp_dir/katex.zip"
-          unzip -p "$tmp_dir/katex.zip" katex/katex.js > "pelican_katex/katex.${NEW_VERSION}.js"
-
-          rm -f "$OLD_FILE"
+      - name: Check for and apply KaTeX update
+        id: update
+        run: python3 scripts/update_katex.py
 
       - name: Create or update pull request
-        if: steps.compare.outputs.newer == 'true'
+        if: steps.update.outputs.newer == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: Update bundled KaTeX to v${{ steps.latest.outputs.version }}
-          title: Update bundled KaTeX to v${{ steps.latest.outputs.version }}
+          commit-message: Update bundled KaTeX to v${{ steps.update.outputs.new_version }}
+          title: Update bundled KaTeX to v${{ steps.update.outputs.new_version }}
           body: Automated update of bundled KaTeX from upstream release assets.
-          branch: chore/update-katex-v${{ steps.latest.outputs.version }}
+          branch: chore/update-katex-v${{ steps.update.outputs.new_version }}
           delete-branch: true
           add-paths: |
             pelican_katex/katex.*.js
-
-      - name: Up-to-date
-        if: steps.compare.outputs.newer != 'true'
-        run: echo "Bundled KaTeX is already up to date"
