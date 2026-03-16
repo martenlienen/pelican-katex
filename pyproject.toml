@@ -29,3 +29,6 @@ markdown = ["markdown"]
 
 [project.urls]
 homepage = "https://github.com/martenlienen/pelican-katex"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
