@@ -21,11 +21,24 @@ jobs:
         id: update
         run: python3 scripts/update_katex.py
 
+      - name: Bump plugin patch version
+        if: steps.update.outputs.newer == 'true'
+        run: |
+          python3 <<'EOF'
+          import re
+          path = 'pelican_katex/__init__.py'
+          content = open(path).read()
+          m = re.search(r'__version__ = "(\d+)\.(\d+)\.(\d+)"', content)
+          major, minor, patch = m.group(1), m.group(2), int(m.group(3))
+          new = f'{major}.{minor}.{patch + 1}'
+          content = re.sub(r'__version__ = "\d+\.\d+\.\d+"', f'__version__ = "{new}"', content)
+          open(path, 'w').write(content)
+          EOF
+
       - name: Create or update pull request
         if: steps.update.outputs.newer == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Update bundled KaTeX to v${{ steps.update.outputs.new_version }}
           title: Update bundled KaTeX to v${{ steps.update.outputs.new_version }}
           body: Automated update of bundled KaTeX from upstream release assets.
@@ -33,3 +46,4 @@ jobs:
           delete-branch: true
           add-paths: |
             pelican_katex/katex.*.js
+            pelican_katex/__init__.py
