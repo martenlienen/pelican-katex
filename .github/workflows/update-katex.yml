@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check for and apply KaTeX update
         id: update
@@ -37,7 +37,7 @@ jobs:
 
       - name: Create or update pull request
         if: steps.update.outputs.newer == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: Update bundled KaTeX to v${{ steps.update.outputs.new_version }}
           title: Update bundled KaTeX to v${{ steps.update.outputs.new_version }}
