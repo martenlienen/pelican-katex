@@ -35,7 +35,7 @@ KATEX_DEFAULT_OPTIONS = {
 KATEX_PATH = None
 
 # How long to wait for the render server to start in seconds
-KATEX_STARTUP_TIMEOUT = 2.0
+KATEX_STARTUP_TIMEOUT = 5.0
 
 # Timeout per rendering request in seconds
 KATEX_RENDER_TIMEOUT = 1.0

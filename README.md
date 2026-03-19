@@ -80,7 +80,7 @@ The plugin offers several configuration options that you can set in your
 # How long to wait for the initial startup of the rendering server. You can
 # increase it but if startup takes longer than a few seconds, something is
 # probably seriously broken.
-# KATEX_STARTUP_TIMEOUT = 2.0
+# KATEX_STARTUP_TIMEOUT = 5.0
 
 # Time budget in seconds per call to the rendering engine. 1 second should
 # be plenty since most renderings take less than 50ms.
