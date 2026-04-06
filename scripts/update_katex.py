@@ -66,7 +66,8 @@ def fetch_latest_release():
 def is_newer(current_version, latest_version):
     current = tuple(int(x) for x in current_version.split("."))
     latest = tuple(int(x) for x in latest_version.split("."))
-    return latest > current
+    # Do not create PRs for support version releases
+    return latest[:2] > current[:2]
 
 
 def download_and_replace(zip_url, old_file, new_version):
