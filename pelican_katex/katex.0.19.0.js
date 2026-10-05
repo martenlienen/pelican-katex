@@ -197,7 +197,6 @@ const protocolFromUrl = url => {
 
 
 
-
 /**
  * Union of all values that appear as schema defaults, cliDefaults, or
  * cliProcessor return values.  StrictFunction / TrustFunction are
@@ -315,15 +314,16 @@ function getImplicitDefault(type) {
   }
 }
 function getDefaultValue(schema) {
-  if (schema.default !== undefined) {
+  if (Object.prototype.hasOwnProperty.call(schema, "default") && schema.default !== undefined) {
     return schema.default;
   }
   const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
   return getImplicitDefault(type);
 }
 function applySetting(target, prop, options, schema) {
-  const optionValue = options[prop];
-  target[prop] = optionValue !== undefined ? schema.processor ? schema.processor(optionValue) : optionValue : getDefaultValue(schema);
+  const optionValue = Object.prototype.hasOwnProperty.call(options, prop) ? options[prop] : undefined;
+  const processor = Object.prototype.hasOwnProperty.call(schema, "processor") ? schema.processor : undefined;
+  target[prop] = optionValue !== undefined ? processor ? processor(optionValue) : optionValue : getDefaultValue(schema);
 }
 
 /**
@@ -363,64 +363,6 @@ class Settings {
         // TODO: validate options
         applySetting(this, prop, options, schema);
       }
-    }
-  }
-
-  /**
-   * Report nonstrict (non-LaTeX-compatible) input.
-   * Can safely not be called if `this.strict` is false in JavaScript.
-   */
-  reportNonstrict(errorCode, errorMsg, token) {
-    let strict = this.strict;
-    if (typeof strict === "function") {
-      // Allow return value of strict function to be boolean or string
-      // (or null/undefined, meaning no further processing).
-      strict = strict(errorCode, errorMsg, token);
-    }
-    if (!strict || strict === "ignore") {
-      return;
-    } else if (strict === true || strict === "error") {
-      throw new src_ParseError("LaTeX-incompatible input and strict mode is set to 'error': " + (errorMsg + " [" + errorCode + "]"), token);
-    } else if (strict === "warn") {
-      typeof console !== "undefined" && console.warn("LaTeX-incompatible input and strict mode is set to 'warn': " + (errorMsg + " [" + errorCode + "]"));
-    } else {
-      // won't happen in type-safe code
-      typeof console !== "undefined" && console.warn("LaTeX-incompatible input and strict mode is set to " + ("unrecognized '" + strict + "': " + errorMsg + " [" + errorCode + "]"));
-    }
-  }
-
-  /**
-   * Check whether to apply strict (LaTeX-adhering) behavior for unusual
-   * input (like `\\`).  Unlike `nonstrict`, will not throw an error;
-   * instead, "error" translates to a return value of `true`, while "ignore"
-   * translates to a return value of `false`.  May still print a warning:
-   * "warn" prints a warning and returns `false`.
-   * This is for the second category of `errorCode`s listed in the README.
-   */
-  useStrictBehavior(errorCode, errorMsg, token) {
-    let strict = this.strict;
-    if (typeof strict === "function") {
-      // Allow return value of strict function to be boolean or string
-      // (or null/undefined, meaning no further processing).
-      // But catch any exceptions thrown by function, treating them
-      // like "error".
-      try {
-        strict = strict(errorCode, errorMsg, token);
-      } catch (error) {
-        strict = "error";
-      }
-    }
-    if (!strict || strict === "ignore") {
-      return false;
-    } else if (strict === true || strict === "error") {
-      return true;
-    } else if (strict === "warn") {
-      typeof console !== "undefined" && console.warn("LaTeX-incompatible input and strict mode is set to 'warn': " + (errorMsg + " [" + errorCode + "]"));
-      return false;
-    } else {
-      // won't happen in type-safe code
-      typeof console !== "undefined" && console.warn("LaTeX-incompatible input and strict mode is set to " + ("unrecognized '" + strict + "': " + errorMsg + " [" + errorCode + "]"));
-      return false;
     }
   }
 
@@ -4907,12 +4849,75 @@ const wideCharacterFont = wideChar => {
     throw new src_ParseError("Unsupported character: " + wideChar);
   }
 };
-;// ./src/buildCommon.ts
+;// ./src/strict.ts
 /* eslint no-console:0 */
+
+
+
+/**
+ * Dispatch LaTeX-incompatible (nonstrict) input according to the `strict`
+ * setting.  Can safely not be called if `strict` is `false`.
+ *
+ * With `report: true`, reports the transgression and returns nothing:
+ * `"error"`/`true` throws a `ParseError`, `"warn"` warns via `console.warn`,
+ * and `"ignore"`/`false` does nothing.  An exception thrown by a `strict`
+ * callback propagates to the caller.
+ *
+ * With `report: false`, checks whether to apply strict (LaTeX-adhering)
+ * behavior for unusual input (like `\\`) and never throws: `"error"`/`true`
+ * returns `true`, `"ignore"`/`false` returns `false`, and `"warn"` warns and
+ * returns `false`.  An exception thrown by a `strict` callback is treated as
+ * `"error"`.  This is for the second category of `errorCode`s listed in
+ * `docs/options.md`.
+ */
+
+function handleStrict(params) {
+  const strict = params.strict,
+    errorCode = params.errorCode,
+    errorMsg = params.errorMsg,
+    token = params.token,
+    report = params.report;
+  let behavior = strict;
+  if (typeof strict === "function") {
+    if (report) {
+      behavior = strict(errorCode, errorMsg, token);
+    } else {
+      try {
+        behavior = strict(errorCode, errorMsg, token);
+      } catch (error) {
+        behavior = "error";
+      }
+    }
+  }
+  switch (behavior) {
+    case true:
+    case "error":
+      if (report) {
+        throw new src_ParseError("LaTeX-incompatible input and strict mode is set to 'error': " + (errorMsg + " [" + errorCode + "]"), token);
+      } else {
+        return true;
+      }
+    case false:
+    case "ignore":
+      if (!report) {
+        return false;
+      }
+      break;
+    case "warn":
+    default:
+      typeof console !== "undefined" && console.warn("LaTeX-incompatible input and strict mode is set to 'warn': " + (errorMsg + " [" + errorCode + "]"));
+      if (!report) {
+        return false;
+      }
+      break;
+  }
+}
+;// ./src/buildCommon.ts
 /**
  * This module contains general functions that can be used for building
  * different kinds of domTree nodes in a consistent manner.
  */
+
 
 
 
@@ -4946,7 +4951,6 @@ const lookupSymbol = function (value, fontName, mode) {
  * TODO: make argument order closer to makeSpan
  * TODO: add a separate argument for math class (e.g. `mop`, `mbin`), which
  * should if present come first in `classes`.
- * TODO(#953): Make `options` mandatory and always pass it in.
  */
 const makeSymbol = function (value, fontName, mode, options, classes) {
   const lookup = lookupSymbol(value, fontName, mode);
@@ -4960,19 +4964,21 @@ const makeSymbol = function (value, fontName, mode, options, classes) {
     }
     symbolNode = new SymbolNode(value, metrics.height, metrics.depth, italic, metrics.skew, metrics.width, classes);
   } else {
-    // TODO(emily): Figure out a good way to only print this in development
-    typeof console !== "undefined" && console.warn("No character metrics " + ("for '" + value + "' in style '" + fontName + "' and mode '" + mode + "'"));
+    handleStrict({
+      strict: options.strict,
+      errorCode: "symbolNotInFont",
+      errorMsg: "No character metrics for '" + value + "' in style '" + fontName + "' and mode '" + mode + "'",
+      report: true
+    });
     symbolNode = new SymbolNode(value, 0, 0, 0, 0, 0, classes);
   }
-  if (options) {
-    symbolNode.maxFontSize = options.sizeMultiplier;
-    if (options.style.isTight()) {
-      symbolNode.classes.push("mtight");
-    }
-    const color = options.getColor();
-    if (color) {
-      symbolNode.style.color = color;
-    }
+  symbolNode.maxFontSize = options.sizeMultiplier;
+  if (options.style.isTight()) {
+    symbolNode.classes.push("mtight");
+  }
+  const color = options.getColor();
+  if (color) {
+    symbolNode.style.color = color;
   }
   return symbolNode;
 };
@@ -6619,6 +6625,7 @@ class Options {
     this.maxSize = void 0;
     this.minRuleThickness = void 0;
     this._fontMetrics = void 0;
+    this.strict = void 0;
     this.style = data.style;
     this.color = data.color;
     this.size = data.size || Options.BASESIZE;
@@ -6631,6 +6638,7 @@ class Options {
     this.sizeMultiplier = sizeMultipliers[this.size - 1];
     this.maxSize = data.maxSize;
     this.minRuleThickness = data.minRuleThickness;
+    this.strict = data.strict;
     this._fontMetrics = undefined;
   }
 
@@ -6650,7 +6658,8 @@ class Options {
       fontWeight: this.fontWeight,
       fontShape: this.fontShape,
       maxSize: this.maxSize,
-      minRuleThickness: this.minRuleThickness
+      minRuleThickness: this.minRuleThickness,
+      strict: this.strict
     };
     Object.assign(data, extension);
     return new Options(data);
@@ -6852,13 +6861,12 @@ Options.BASESIZE = 6;
 
 
 
-const optionsFromSettings = function (settings) {
-  return new src_Options({
-    style: settings.displayMode ? src_Style.DISPLAY : src_Style.TEXT,
-    maxSize: settings.maxSize,
-    minRuleThickness: settings.minRuleThickness
-  });
-};
+const optionsFromSettings = settings => new src_Options({
+  style: settings.displayMode ? src_Style.DISPLAY : src_Style.TEXT,
+  maxSize: settings.maxSize,
+  minRuleThickness: settings.minRuleThickness,
+  strict: settings.strict
+});
 const displayWrap = function (node, settings) {
   if (settings.displayMode) {
     const classes = ["katex-display"];
@@ -6887,7 +6895,7 @@ const buildTree = function (tree, expression, settings) {
   }
   return displayWrap(katexNode, settings);
 };
-const buildHTMLTree = function (tree, expression, settings) {
+const buildHTMLTree = function (tree, settings) {
   const options = optionsFromSettings(settings);
   const htmlNode = buildHTML(tree, options);
   const katexNode = makeSpan(["katex"], [htmlNode]);
@@ -7225,6 +7233,7 @@ function isAtom(value) {
 }
 ;// ./src/parseNode.ts
 
+
 /**
  * Asserts that the node is of the given type and returns it with stricter
  * typing. Throws if the node's type does not match.
@@ -7258,7 +7267,27 @@ function checkSymbolNodeType(node) {
   }
   return null;
 }
+
+/**
+ * Returns the string spelled out by a group of plain characters, throwing the
+ * given ParseError if the group holds anything else. With allowSpaces, a
+ * literal space counts as a character; `~` and `\ ` do not.
+ */
+function assertCharacterGroup(group, errorMessage, allowSpaces) {
+  let text = "";
+  for (const node of group.body) {
+    if (node.type === "textord") {
+      text += node.text;
+    } else if (allowSpaces && node.type === "spacing" && node.text === " ") {
+      text += " ";
+    } else {
+      throw new src_ParseError(errorMessage, group);
+    }
+  }
+  return text;
+}
 ;// ./src/functions/accent.ts
+
 
 
 
@@ -7482,7 +7511,12 @@ defineFunction({
     const base = args[0];
     let mode = context.parser.mode;
     if (mode === "math") {
-      context.parser.settings.reportNonstrict("mathVsTextAccents", "LaTeX's accent " + context.funcName + " works only in text mode");
+      handleStrict({
+        strict: context.parser.settings.strict,
+        errorCode: "mathVsTextAccents",
+        errorMsg: "LaTeX's accent " + context.funcName + " works only in text mode",
+        report: true
+      });
       mode = "text";
     }
     return {
@@ -8186,19 +8220,14 @@ defineFunction({
   handler(_ref, args) {
     let parser = _ref.parser;
     const arg = assertNodeType(args[0], "ordgroup");
-    const group = arg.body;
-    let number = "";
-    for (let i = 0; i < group.length; i++) {
-      const node = assertNodeType(group[i], "textord");
-      number += node.text;
-    }
+    const number = assertCharacterGroup(arg, "\\@char has non-numeric argument");
     let code = parseInt(number);
     let text;
     if (isNaN(code)) {
       throw new src_ParseError("\\@char has non-numeric argument " + number);
       // If we drop IE support, the following code could be replaced with
       // text = String.fromCodePoint(code)
-    } else if (code < 0 || code >= 0x10ffff) {
+    } else if (code < 0 || code > 0x10ffff) {
       throw new src_ParseError("\\@char with invalid code point " + number);
     } else if (code <= 0xffff) {
       text = String.fromCharCode(code);
@@ -8292,6 +8321,7 @@ defineFunction({
 
 
 
+
 // \DeclareRobustCommand\\{...\@xnewline}
 defineFunction({
   type: "cr",
@@ -8299,10 +8329,15 @@ defineFunction({
   numArgs: 0,
   numOptionalArgs: 0,
   allowedInText: true,
-  handler(_ref, args, optArgs) {
+  handler(_ref) {
     let parser = _ref.parser;
     const size = parser.gullet.future().text === "[" ? parser.parseSizeGroup(true) : null;
-    const newLine = !parser.settings.displayMode || !parser.settings.useStrictBehavior("newLineInDisplayMode", "In LaTeX, \\\\ or \\newline " + "does nothing in display mode");
+    const newLine = !parser.settings.displayMode || !handleStrict({
+      strict: parser.settings.strict,
+      errorCode: "newLineInDisplayMode",
+      errorMsg: "In LaTeX, \\\\ or \\newline does nothing in display mode",
+      report: false
+    });
     return {
       type: "cr",
       mode: parser.mode,
@@ -8638,7 +8673,7 @@ const makeLargeDelim = function (delim, size, center, options, mode, classes) {
  * Make a span from a font glyph with the given offset and in the given font.
  * This is used in makeStackedDelim to make the stacking pieces for the delimiter.
  */
-const makeGlyphSpan = function (symbol, font, mode) {
+const makeGlyphSpan = function (symbol, font, mode, options) {
   let sizeClass;
   // Apply the correct CSS class to choose the right font.
   if (font === "Size1-Regular") {
@@ -8646,7 +8681,7 @@ const makeGlyphSpan = function (symbol, font, mode) {
   } else /* if (font === "Size4-Regular") */{
       sizeClass = "delim-size4";
     }
-  const corner = makeSpan(["delimsizinginner", sizeClass], [makeSpan([], [makeSymbol(symbol, font, mode)])]);
+  const corner = makeSpan(["delimsizinginner", sizeClass], [makeSpan([], [makeSymbol(symbol, font, mode, options)])]);
 
   // Since this will be passed into `makeVList` in the end, wrap the element
   // in the appropriate tag that VList uses.
@@ -8881,7 +8916,7 @@ const makeStackedDelim = function (delim, heightTotal, center, options, mode, cl
   } else {
     // Stack glyphs
     // Start by adding the bottom symbol
-    stack.push(makeGlyphSpan(bottom, font, mode));
+    stack.push(makeGlyphSpan(bottom, font, mode, options));
     stack.push(lap); // overlap
 
     if (middle === null) {
@@ -8896,14 +8931,14 @@ const makeStackedDelim = function (delim, heightTotal, center, options, mode, cl
       stack.push(makeInner(repeat, innerHeight, options));
       // Now insert the middle of the brace.
       stack.push(lap);
-      stack.push(makeGlyphSpan(middle, font, mode));
+      stack.push(makeGlyphSpan(middle, font, mode, options));
       stack.push(lap);
       stack.push(makeInner(repeat, innerHeight, options));
     }
 
     // Add the top symbol
     stack.push(lap);
-    stack.push(makeGlyphSpan(top, font, mode));
+    stack.push(makeGlyphSpan(top, font, mode, options));
   }
 
   // Finally, build the vlist
@@ -9343,7 +9378,7 @@ defineFunction({
   numArgs: 1,
   argTypes: ["primitive"],
   handler: (context, args) => {
-    const delim = checkDelimiter(args[0], context);
+    const delim = checkDelimiter(normalizeArgument(args[0]), context);
     return {
       type: "delimsizing",
       mode: context.parser.mode,
@@ -9561,6 +9596,7 @@ defineFunction({
   }
 });
 ;// ./src/functions/enclose.ts
+
 
 
 
@@ -9851,7 +9887,12 @@ defineFunction({
     let parser = _ref5.parser,
       funcName = _ref5.funcName;
     if (parser.mode === "math") {
-      parser.settings.reportNonstrict("mathVsSout", "LaTeX's \\sout works only in text mode");
+      handleStrict({
+        strict: parser.settings.strict,
+        errorCode: "mathVsSout",
+        errorMsg: "LaTeX's \\sout works only in text mode",
+        report: true
+      });
     }
     const body = args[0];
     return {
@@ -10205,7 +10246,12 @@ function parseArray(parser, _ref, style) {
           throw new src_ParseError("Too many tab characters: &", parser.nextToken);
         } else {
           // {array} environment
-          parser.settings.reportNonstrict("textEnv", "Too few columns " + "specified in the {array} column argument.");
+          handleStrict({
+            strict: parser.settings.strict,
+            errorCode: "textEnv",
+            errorMsg: "Too few columns specified in the {array} column argument.",
+            report: true
+          });
         }
       }
       parser.consume();
@@ -10213,9 +10259,10 @@ function parseArray(parser, _ref, style) {
       endRow();
       // Arrays terminate newlines with `\crcr` which consumes a `\cr` if
       // the last line is empty.  However, AMS environments keep the
-      // empty row if it's the only one.
+      // empty row if it's the only one, has a manual tag, or is an
+      // automatically numbered row explicitly ended with `\\`.
       // NOTE: Currently, `cell` is the last item added into `row`.
-      if (row.length === 1 && cell.type === "styling" && cell.body.length === 1 && cell.body[0].type === "ordgroup" && cell.body[0].body.length === 0 && (body.length > 1 || !emptySingleRow)) {
+      if (row.length === 1 && cell.type === "styling" && cell.body.length === 1 && cell.body[0].type === "ordgroup" && cell.body[0].body.length === 0 && (body.length > 1 || !emptySingleRow) && !Array.isArray(tags == null ? void 0 : tags[tags.length - 1]) && !(autoTag && (tags == null ? void 0 : tags[tags.length - 1]) === true)) {
         body.pop();
       }
       if (hLinesBeforeRow.length < body.length + 1) {
@@ -10703,12 +10750,12 @@ const alignedHandler = function (context, args) {
     body: []
   };
   if (args[0] && args[0].type === "ordgroup") {
-    let arg0 = "";
-    for (let i = 0; i < args[0].body.length; i++) {
-      const textord = assertNodeType(args[0].body[i], "textord");
-      arg0 += textord.text;
+    const message = "Number of columns should be a positive integer";
+    const numColumns = assertCharacterGroup(args[0], message);
+    if (!/^[0-9]+$/.test(numColumns) || Number(numColumns) < 1) {
+      throw new src_ParseError(message, args[0]);
     }
-    numMaths = Number(arg0);
+    numMaths = Number(numColumns);
     numCols = numMaths * 2;
   }
   const isAligned = !numCols;
@@ -11109,10 +11156,7 @@ defineFunction({
     if (nameGroup.type !== "ordgroup") {
       throw new src_ParseError("Invalid environment name", nameGroup);
     }
-    let envName = "";
-    for (let i = 0; i < nameGroup.body.length; ++i) {
-      envName += assertNodeType(nameGroup.body[i], "textord").text;
-    }
+    const envName = assertCharacterGroup(nameGroup, "Environment name should contain only text characters and spaces", true);
     if (funcName === "\\begin") {
       // begin...end is similar to left...right
       if (!Object.prototype.hasOwnProperty.call(src_environments, envName)) {
@@ -11915,6 +11959,7 @@ defineFunction({
 
 
 
+
 defineFunction({
   type: "html",
   names: ["\\htmlClass", "\\htmlId", "\\htmlStyle", "\\htmlData"],
@@ -11928,7 +11973,12 @@ defineFunction({
     const value = assertNodeType(args[0], "raw").string;
     const body = args[1];
     if (parser.settings.strict) {
-      parser.settings.reportNonstrict("htmlExtension", "HTML extension is disabled on strict mode");
+      handleStrict({
+        strict: parser.settings.strict,
+        errorCode: "htmlExtension",
+        errorMsg: "HTML extension is disabled on strict mode",
+        report: true
+      });
     }
     let trustContext;
     const attributes = {};
@@ -12206,6 +12256,7 @@ defineFunction({
 
 
 
+
 // TODO: \hskip and \mskip should support plus and minus in lengths
 
 defineFunction({
@@ -12224,15 +12275,30 @@ defineFunction({
       const muUnit = size.value.unit === 'mu';
       if (mathFunction) {
         if (!muUnit) {
-          parser.settings.reportNonstrict("mathVsTextUnits", "LaTeX's " + funcName + " supports only mu units, " + ("not " + size.value.unit + " units"));
+          handleStrict({
+            strict: parser.settings.strict,
+            errorCode: "mathVsTextUnits",
+            errorMsg: "LaTeX's " + funcName + " supports only mu units, " + ("not " + size.value.unit + " units"),
+            report: true
+          });
         }
         if (parser.mode !== "math") {
-          parser.settings.reportNonstrict("mathVsTextUnits", "LaTeX's " + funcName + " works only in math mode");
+          handleStrict({
+            strict: parser.settings.strict,
+            errorCode: "mathVsTextUnits",
+            errorMsg: "LaTeX's " + funcName + " works only in math mode",
+            report: true
+          });
         }
       } else {
         // !mathFunction
         if (muUnit) {
-          parser.settings.reportNonstrict("mathVsTextUnits", "LaTeX's " + funcName + " doesn't support mu units");
+          handleStrict({
+            strict: parser.settings.strict,
+            errorCode: "mathVsTextUnits",
+            errorMsg: "LaTeX's " + funcName + " doesn't support mu units",
+            report: true
+          });
         }
       }
     }
@@ -13128,6 +13194,43 @@ defineFunction({
     node.setAttribute("voffset", dy);
     return node;
   }
+});
+;// ./src/functions/reflectbox.ts
+
+
+
+
+const handler = (_ref, args) => {
+  let parser = _ref.parser;
+  return {
+    type: "reflectbox",
+    mode: parser.mode,
+    body: args[0]
+  };
+};
+defineFunction({
+  type: "reflectbox",
+  names: ["\\reflectbox"],
+  numArgs: 1,
+  argTypes: ["hbox"],
+  allowedInText: true,
+  handler,
+  htmlBuilder(group, options) {
+    return makeSpan(["mord", "reflectbox"], [buildGroup(group.body, options)], options);
+  },
+  mathmlBuilder(group, options) {
+    return buildMathML_buildGroup(group.body, options);
+  }
+});
+
+// Parse math directly so the shared builders inherit the surrounding style.
+// \reflectbox instead uses an hbox argument for LaTeX's text-box behavior.
+defineFunction({
+  type: "reflectbox",
+  names: ["\\mathreflectbox"],
+  numArgs: 1,
+  argTypes: ["math"],
+  handler
 });
 ;// ./src/functions/relax.ts
 
@@ -14255,6 +14358,7 @@ const functions = _functions;
 
 
 
+
 ;// ./src/Lexer.ts
 /**
  * The Lexer class handles tokenizing the input in various ways. Since our
@@ -14268,6 +14372,7 @@ const functions = _functions;
  * The various `_innerLex` functions perform the actual lexing of different
  * kinds.
  */
+
 
 
 
@@ -14359,7 +14464,12 @@ class Lexer {
       const nlIndex = input.indexOf('\n', this.tokenRegex.lastIndex);
       if (nlIndex === -1) {
         this.tokenRegex.lastIndex = input.length; // EOF
-        this.settings.reportNonstrict("commentAtEnd", "% comment has no terminating newline; LaTeX would " + "fail because of commenting the end of math mode (e.g. $)");
+        handleStrict({
+          strict: this.settings.strict,
+          errorCode: "commentAtEnd",
+          errorMsg: "% comment has no terminating newline; LaTeX would " + "fail because of commenting the end of math mode (e.g. $)",
+          report: true
+        });
       } else {
         this.tokenRegex.lastIndex = nlIndex + 1;
       }
@@ -14453,8 +14563,10 @@ class Namespace {
   get(name) {
     if (Object.prototype.hasOwnProperty.call(this.current, name)) {
       return this.current[name];
-    } else {
+    } else if (Object.prototype.hasOwnProperty.call(this.builtins, name)) {
       return this.builtins[name];
+    } else {
+      return undefined;
     }
   }
 
@@ -14486,7 +14598,7 @@ class Namespace {
       // value is the correct one.
       const top = this.undefStack[this.undefStack.length - 1];
       if (top && !Object.prototype.hasOwnProperty.call(top, name)) {
-        top[name] = this.current[name];
+        top[name] = Object.prototype.hasOwnProperty.call(this.current, name) ? this.current[name] : undefined;
       }
     }
     if (value == null) {
@@ -15256,6 +15368,8 @@ defineMacro("\u27e7", "\\rrbracket"); // blackboard bold ]
 
 defineMacro("\\lBrace", "\\html@mathml{" + "\\mathopen{\\{\\mkern-3.2mu[}}" + "{\\mathopen{\\char`\u2983}}");
 defineMacro("\\rBrace", "\\html@mathml{" + "\\mathclose{]\\mkern-3.2mu\\}}}" + "{\\mathclose{\\char`\u2984}}");
+defineMacro("↤", "\\mapsfrom");
+defineMacro("\\mapsfrom", "\\html@mathml{\\mathrel{\\mathreflectbox{\\mapsto}}}{\\mathrel{\\char`↤}}");
 defineMacro("\u2983", "\\lBrace"); // blackboard bold {
 defineMacro("\u2984", "\\rBrace"); // blackboard bold }
 
@@ -16038,6 +16152,7 @@ const uSubsAndSups = Object.freeze({
 });
 ;// ./src/Parser.ts
 /* eslint no-constant-condition:0 */
+
 
 
 
@@ -17348,7 +17463,13 @@ class Parser {
     if (Object.prototype.hasOwnProperty.call(unicodeSymbols, text[0]) && !src_symbols[this.mode][text[0]]) {
       // This behavior is not strict (XeTeX-compatible) in math mode.
       if (this.settings.strict && this.mode === "math") {
-        this.settings.reportNonstrict("unicodeTextInMathMode", "Accented Unicode text character \"" + text[0] + "\" used in " + "math mode", nucleus);
+        handleStrict({
+          strict: this.settings.strict,
+          errorCode: "unicodeTextInMathMode",
+          errorMsg: "Accented Unicode text character \"" + text[0] + "\" used in math mode",
+          report: true,
+          token: nucleus
+        });
       }
       text = unicodeSymbols[text[0]] + text.slice(1);
     }
@@ -17366,7 +17487,13 @@ class Parser {
     let symbol;
     if (src_symbols[this.mode][text]) {
       if (this.settings.strict && this.mode === 'math' && extraLatin.includes(text)) {
-        this.settings.reportNonstrict("unicodeTextInMathMode", "Latin-1/Unicode text character \"" + text[0] + "\" used in " + "math mode", nucleus);
+        handleStrict({
+          strict: this.settings.strict,
+          errorCode: "unicodeTextInMathMode",
+          errorMsg: "Latin-1/Unicode text character \"" + text[0] + "\" used in math mode",
+          report: true,
+          token: nucleus
+        });
       }
       const group = src_symbols[this.mode][text].group;
       const loc = SourceLocation.range(nucleus);
@@ -17392,9 +17519,21 @@ class Parser {
       // no symbol for e.g. ^
       if (this.settings.strict) {
         if (!supportedCodepoint(text.charCodeAt(0))) {
-          this.settings.reportNonstrict("unknownSymbol", "Unrecognized Unicode character \"" + text[0] + "\"" + (" (" + text.charCodeAt(0) + ")"), nucleus);
+          handleStrict({
+            strict: this.settings.strict,
+            errorCode: "unknownSymbol",
+            errorMsg: "Unrecognized Unicode character \"" + text[0] + "\"" + (" (" + text.charCodeAt(0) + ")"),
+            report: true,
+            token: nucleus
+          });
         } else if (this.mode === "math") {
-          this.settings.reportNonstrict("unicodeTextInMathMode", "Unicode text character \"" + text[0] + "\" used in math mode", nucleus);
+          handleStrict({
+            strict: this.settings.strict,
+            errorCode: "unicodeTextInMathMode",
+            errorMsg: "Unicode text character \"" + text[0] + "\" used in math mode",
+            report: true,
+            token: nucleus
+          });
         }
       }
       // All nonmathematical Unicode characters are rendered as if they
@@ -17571,12 +17710,12 @@ const renderToHTMLTree = function (expression, options) {
   const settings = new Settings(options);
   try {
     const tree = src_parseTree(expression, settings);
-    return buildHTMLTree(tree, expression, settings);
+    return buildHTMLTree(tree, settings);
   } catch (error) {
     return renderError(error, expression, settings);
   }
 };
-const version = "0.18.1";
+const version = "0.19.0";
 const __domTree = {
   Span: Span,
   Anchor: Anchor,
